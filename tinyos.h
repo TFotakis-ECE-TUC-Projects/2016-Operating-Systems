@@ -1,7 +1,5 @@
-
 #ifndef __TINYOS_H__
 #define __TINYOS_H__
-
 #include <stdint.h>
 
 /**
@@ -33,7 +31,6 @@ typedef int Pid_t;    /* The PID type  */
 
 /** @brief The maximum number of processes */
 #define MAX_PROC 65536
-
 /** @brief The type of a file ID. */
 typedef int Fid_t;
 
@@ -43,8 +40,6 @@ typedef int Fid_t;
 
 /** @brief The invalid file id. */
 #define NOFILE  (-1)
-
-
 /**
   @brief The type of a thread ID.
   */
@@ -80,7 +75,6 @@ typedef char Mutex;
  */
 #define MUTEX_INIT 0
 
-
 /** @brief Lock a mutex.
 
   Lock a mutex, by waiting if necessary, as long as it takes. In user-space and
@@ -91,7 +85,7 @@ typedef char Mutex;
   @see Mutex_Unlock
   @see set_core_preemption
   */
-void Mutex_Lock(Mutex*);
+void Mutex_Lock(Mutex *);
 
 /** @brief Unlock a mutex that you locked.
 
@@ -99,8 +93,7 @@ void Mutex_Lock(Mutex*);
     @see Mutex
     @see Mutex_Lock
 */
-void Mutex_Unlock(Mutex*);
-
+void Mutex_Unlock(Mutex *);
 
 /** @brief Condition variables.
 
@@ -113,8 +106,8 @@ void Mutex_Unlock(Mutex*);
   @see COND_INIT
  */
 typedef struct {
-  void *waitset;        /**< The set of waiting threads */
-  Mutex waitset_lock;   /**< A mutex to protect `waitset` */
+    void *waitset;        /**< The set of waiting threads */
+    Mutex waitset_lock;   /**< A mutex to protect `waitset` */
 } CondVar;
 
 
@@ -126,7 +119,6 @@ typedef struct {
   @endcode
  */
 #define COND_INIT ((CondVar){ NULL, MUTEX_INIT })
-
 
 /** @brief Wait on a condition variable.
 
@@ -151,9 +143,9 @@ typedef struct {
   @see Cond_Signal
   @see Cond_Broadcast
   */
-int Cond_Wait(Mutex* mx, CondVar* cv);
-int Cond_Wait_from_IO(Mutex* mx, CondVar* cv);
+int Cond_Wait(Mutex *mx, CondVar *cv);
 
+int Cond_Wait_from_IO(Mutex *mx, CondVar *cv);
 
 /** @brief Signal a condition variable.
 
@@ -163,7 +155,7 @@ int Cond_Wait_from_IO(Mutex* mx, CondVar* cv);
    @see Cond_Wait
    @see Cond_Broadcast
    */
-void Cond_Signal(CondVar*);
+void Cond_Signal(CondVar *);
 
 /** @brief Notify all threads waiting at a condition variable.
 
@@ -173,7 +165,7 @@ void Cond_Signal(CondVar*);
   @see Cond_Wait
   @see Cond_Signal
 */
-void Cond_Broadcast(CondVar*);
+void Cond_Broadcast(CondVar *);
 
 
 /*******************************************
@@ -187,8 +179,7 @@ void Cond_Broadcast(CondVar*);
    New processes are created by calling a starting function, whose signature is Task.
    @see Exec
   */
-typedef int (*Task)(int, void*);
-
+typedef int (*Task)(int, void *);
 
 /** @brief Create a new process.
 
@@ -212,8 +203,7 @@ typedef int (*Task)(int, void*);
      Possible errors:
    -  The maximum number of processes has been reached.
   */
-Pid_t Exec(Task task, int argl, void* args);
-
+Pid_t Exec(Task task, int argl, void *args);
 
 /** @brief Exit the current process.
 
@@ -251,7 +241,7 @@ void Exit(int val);
    - the specified process is not a child of this process.
    - the process has no child processes to wait on (when pid=NOPROC).
 */
-Pid_t WaitChild(Pid_t pid, int* exitval);
+Pid_t WaitChild(Pid_t pid, int *exitval);
 
 /** @brief Return the PID of the caller.
 
@@ -291,7 +281,7 @@ Pid_t GetPPid(void);
   @param task a function to execute
 
   */
-Tid_t CreateThread(Task task, int argl, void* args);
+Tid_t CreateThread(Task task, int argl, void *args);
 
 /**
   @brief Return the Tid of the current thread.
@@ -323,8 +313,7 @@ Tid_t ThreadSelf();
     - the tid corresponds to a detached thread.
 
   */
-int ThreadJoin(Tid_t tid, int* exitval);
-
+int ThreadJoin(Tid_t tid, int *exitval);
 
 /**
   @brief Detach the given thread.
@@ -394,7 +383,6 @@ unsigned int GetTerminalDevices();
  */
 Fid_t OpenTerminal(unsigned int termno);
 
-
 /** @brief Open a stream on the null device.
 
   The null device is a virtual device representing an "infinite"
@@ -407,7 +395,6 @@ Fid_t OpenTerminal(unsigned int termno);
    - The maximum number of file descriptors has been reached.
 */
 Fid_t OpenNull();
-
 
 /**
   @brief Read bytes from a stream.
@@ -429,7 +416,6 @@ Fid_t OpenNull();
  */
 int Read(Fid_t fd, char *buf, unsigned int size);
 
-
 /** @brief Write bytes to a stream.
 
    The @c buf and @c size arguments are, respectively, a buffer into which
@@ -450,8 +436,7 @@ int Read(Fid_t fd, char *buf, unsigned int size);
    - The file id is invalid.
    - There was a I/O runtime problem.
  */
-int Write(Fid_t fd, const char* buf, unsigned int size);
-
+int Write(Fid_t fd, const char *buf, unsigned int size);
 
 /** @brief Close a file id.
 
@@ -465,7 +450,6 @@ int Write(Fid_t fd, const char* buf, unsigned int size);
    - There was a I/O runtime problem.
  */
 int Close(Fid_t fd);
-
 
 /** @brief Make a copy of a stream to a new file ID.
 
@@ -501,10 +485,9 @@ int Dup2(Fid_t oldfd, Fid_t newfd);
   available at the read end, unsing @c Read().
 */
 typedef struct pipe_s {
-  Fid_t read;     /**< The read end of the pipe */
-  Fid_t write;    /**< The write end of the pipe */
+    Fid_t read;     /**< The read end of the pipe */
+    Fid_t write;    /**< The write end of the pipe */
 } pipe_t;
-
 
 /**
   @brief Construct and return a pipe.
@@ -524,7 +507,7 @@ typedef struct pipe_s {
   @returns 0 on success, or -1 on error. Possible reasons for error:
     - the available file ids for the process are exhausted.
 */
-int Pipe(pipe_t* pipe);
+int Pipe(pipe_t *pipe);
 
 /*******************************************
  *
@@ -548,7 +531,6 @@ typedef int16_t port_t;
   @brief a null value for a port
 */
 #define NOPORT ((port_t)0)
-
 
 /**
   @brief Return a new socket bound on a port.
@@ -588,7 +570,6 @@ Fid_t Socket(port_t port);
  */
 int Listen(Fid_t sock);
 
-
 /**
   @brief Wait for a connection.
 
@@ -614,14 +595,12 @@ int Listen(Fid_t sock);
  */
 Fid_t Accept(Fid_t lsock);
 
-
 /**
   @brief An integer type for time intervals.
 
   The unit is milliseconds.
 */
 typedef long int timeout_t;
-
 
 /**
   @brief Create a connection to a listener at a specific port.
@@ -650,7 +629,6 @@ typedef long int timeout_t;
 */
 int Connect(Fid_t sock, port_t port, timeout_t timeout);
 
-
 /**
    @brief Socket shutdown modes.
 
@@ -660,12 +638,10 @@ int Connect(Fid_t sock, port_t port, timeout_t timeout);
    @see ShutDown
 */
 typedef enum {
-  SHUTDOWN_READ = 1,  /**< Shut down the read direction. */
-  SHUTDOWN_WRITE = 2, /**< Shut down the write direction. */
-  SHUTDOWN_BOTH = 3   /**< Shut down both directions. */
+    SHUTDOWN_READ = 1,  /**< Shut down the read direction. */
+    SHUTDOWN_WRITE = 2, /**< Shut down the write direction. */
+    SHUTDOWN_BOTH = 3   /**< Shut down both directions. */
 } shutdown_mode;
-
-
 
 /**
    @brief Shut down one direction of socket communication.
@@ -707,7 +683,6 @@ int ShutDown(Fid_t sock, shutdown_mode how);
   @brief The max. size of args returned by a procinfo structure.
   */
 #define PROCINFO_MAX_ARGS_SIZE (128)
-
 /**
   @brief A struct containing process-related information for a non-free
   pid.
@@ -715,31 +690,29 @@ int ShutDown(Fid_t sock, shutdown_mode how);
   This structure is returned by information streams.
   @see OpenInfo
   */
-typedef struct procinfo
-{
-  Pid_t pid;      /**< @brief The pid of the process. */
-  Pid_t ppid;     /**< @brief The parent pid of the process.
+typedef struct procinfo {
+    Pid_t pid;      /**< @brief The pid of the process. */
+    Pid_t ppid;     /**< @brief The parent pid of the process.
 
                 This is equal to NOPROC for parentless procs. */
 
-  int alive;      /**< @brief Non-zero if process is alive, zero if process is zombie. */
+    int alive;      /**< @brief Non-zero if process is alive, zero if process is zombie. */
 
-  unsigned long thread_count; /**< Current no of threads. */
+    unsigned long thread_count; /**< Current no of threads. */
 
-  Task main_task;  /**< @brief The main task of the process. */
+    Task main_task;  /**< @brief The main task of the process. */
 
-  int argl;        /**< @brief Argument length of main task.
+    int argl;        /**< @brief Argument length of main task.
 
             Note that this is the
             real argument length, not just the length of the @c args field, which is
             limited at @c PROCINFO_MAX_ARGS_SIZE. */
-  char args[PROCINFO_MAX_ARGS_SIZE]; /**< @brief The first
+    char args[PROCINFO_MAX_ARGS_SIZE]; /**< @brief The first
     @c PROCINFO_MAX_ARGS_SIZE bytes of the argument of the main task.
 
     If the task's argument is longer (as designated by the @c argl field), the
     bytes contained in this field are just the prefix.  */
 } procinfo;
-
 
 /**
   @brief Open a kernel information stream.
@@ -780,7 +753,7 @@ Fid_t OpenInfo();
    When the boot_task process finishes, this call halts and cleans up TinyOS structures
    and then returns.
    */
-void boot(unsigned int ncores, unsigned int terminals, Task boot_task, int argl, void* args);
+void boot(unsigned int ncores, unsigned int terminals, Task boot_task, int argl, void *args);
 
 
 /** @} */
