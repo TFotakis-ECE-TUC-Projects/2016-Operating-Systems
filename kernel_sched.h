@@ -1,5 +1,5 @@
 /*
- *  Scheduler API and implementation 
+ *  Scheduler API and implementation
  *
  */
 
@@ -31,34 +31,34 @@
  *
  *  The Thread Control Block
  *
- *****************************/ 
+ *****************************/
 
-/** @brief Thread state. 
+/** @brief Thread state.
 
   A value of this type, together with a @c Thread_phase value, completely
-  determines the state of the current API. 
+  determines the state of the current API.
 
   @see Thread_phase
 */
-typedef enum { 
-    INIT,       /**< TCB initialising */
-    READY,      /**< A thread ready to be scheduled.   */
-    RUNNING,    /**< A thread running on some core   */
-    STOPPED,    /**< A blocked thread   */
-    EXITED      /**< A terminated thread   */
-  } Thread_state;
+typedef enum {
+  INIT,       /**< TCB initialising */
+  READY,      /**< A thread ready to be scheduled.   */
+  RUNNING,    /**< A thread running on some core   */
+  STOPPED,    /**< A blocked thread   */
+  EXITED      /**< A terminated thread   */
+} Thread_state;
 
-/** @brief Thread phase. 
+/** @brief Thread phase.
 
   @see Thread_state
 */
-typedef enum { 
-    CTX_CLEAN,   /**< Means that, the context stored in the TCB is up-to-date. */
-    CTX_DIRTY    /**< Means that, the context stored in the TCN is garbage. */
-  } Thread_phase;
+typedef enum {
+  CTX_CLEAN,   /**< Means that, the context stored in the TCB is up-to-date. */
+  CTX_DIRTY    /**< Means that, the context stored in the TCN is garbage. */
+} Thread_phase;
 
 /** @brief Thread type. */
-typedef enum { 
+typedef enum {
   IDLE_THREAD,    /**< Marks an idle thread. */
   NORMAL_THREAD   /**< Marks a normal thread */
 } Thread_type;
@@ -94,12 +94,12 @@ typedef struct thread_control_block
   Mutex state_spinlock;       /**< A spinlock for setting state and phase */
 
 
-  /* scheduler data */  
+  /* scheduler data */
   rlnode sched_node;      /**< node to use when queueing in the scheduler list */
 
   struct thread_control_block * prev;  /**< previous context */
   struct thread_control_block * next;  /**< next context */
-  
+
 
   /*Our edits*/
   int priority;   /**<the TCB's current priority value*/
@@ -132,7 +132,7 @@ typedef struct core_control_block {
   sig_atomic_t preemption;    /**< Marks preemption, used by the locking code */
 
 } CCB;
- 
+
 /*Our edits*/
 /** @brief The max priority value*/
 #define MAX_PRIORITY (15)
@@ -149,17 +149,17 @@ extern CCB cctx[MAX_CORES];
 /** @brief The current core's CCB */
 #define CURCORE  (cctx[cpu_core_id])
 
-/** 
+/**
   @brief The current thread.
 
   This is a pointer to the TCB of the thread currently executing on this core.
 */
 #define CURTHREAD  (CURCORE.current_thread)
 
-/** 
+/**
   @brief The current thread.
 
-  This is a pointer to the PCB of the owner process of the current thread, 
+  This is a pointer to the PCB of the owner process of the current thread,
   i.e., the thread currently executing on this core.
 */
 #define CURPROC  (CURTHREAD->owner_pcb)
@@ -168,8 +168,8 @@ extern CCB cctx[MAX_CORES];
 /**
   @brief Create a new thread.
 
-	This call creates a new thread, initializing and returning its TCB.
-	The thread will belong to process @c pcb and execute @c func.
+  This call creates a new thread, initializing and returning its TCB.
+  The thread will belong to process @c pcb and execute @c func.
   Note that, the new thread is returned in the @c INIT state.
   The caller must use @c wakeup() to start it.
 */
@@ -179,26 +179,26 @@ TCB* spawn_thread(PCB* pcb, void (*func)());
   @brief Wakeup a blocked thread.
 
   This call will change the state of a thread from @c STOPPED or @c INIT (where the
-  thread is blocked) to @c READY. 
+  thread is blocked) to @c READY.
 
   @param tcb the thread to be made @c READY.
 */
 void wakeup(TCB* tcb);
 
 
-/** 
+/**
   @brief Block the current thread.
 
     This call will block the current thread, changing its state to @c STOPPED
     or @c EXITED. Also, the mutex @c mx, if not `NULL`, will be unlocked, atomically
-    with the blocking of the thread. 
+    with the blocking of the thread.
 
     In particular, what is meant by 'atomically' is that the thread state will change
     to @c newstate atomically with the mutex unlocking. Note that, the state of
-    the current thread is @c RUNNING. 
-    Therefore, no other state change (such as a wakeup, a yield, another sleep etc) 
+    the current thread is @c RUNNING.
+    Therefore, no other state change (such as a wakeup, a yield, another sleep etc)
     can happen "between" the thread's state change and the unlocking.
-  
+
     If the @c newstate is @c EXITED, the thread will block and also will eventually be
     cleaned-up by the scheduler. Its TCB should not be accessed in any way after this
     call.
@@ -212,7 +212,7 @@ void sleep_releasing(Thread_state newstate, Mutex* mx);
   @brief Give up the CPU.
 
   This call asks the scheduler to terminate the quantum of the current thread
-  and possibly switch to a different thread. The scheduler may decide that 
+  and possibly switch to a different thread. The scheduler may decide that
   it will renew the quantum for the current thread.
  */
 void yield();
@@ -223,8 +223,8 @@ void yield();
 
   This function is called just before the choosing for the next thread to be executed
   in the yield function. It increases by 1 the @c quantums_passed property of each thread
-  in the Multilevel Feedback Queue and then it increases by 1 the priority of the first 
-  node of each list in the @c priority_table if its quantums_passed value exceeds the 
+  in the Multilevel Feedback Queue and then it increases by 1 the priority of the first
+  node of each list in the @c priority_table if its quantums_passed value exceeds the
   @c MAX_QUANTUMS_PASSED constant.
 */
 void thread_list_priority_calculation(void);
@@ -232,7 +232,7 @@ void thread_list_priority_calculation(void);
 /**
   @brief It calculates the priority of the current thread after its execution.
 
-  This function calculates the priority of the current thread after its execution 
+  This function calculates the priority of the current thread after its execution
   by checking its quantum consumption and if it is I/O  or CPU Bounded.
 */
 void current_priority_calculation(int quantum_left);
@@ -242,20 +242,20 @@ void current_priority_calculation(int quantum_left);
 
   This function is called at kernel initialization, by each core,
   to enter the scheduler. When this function returns, the scheduler
-  has stopped (there are no more active threads) and the 
+  has stopped (there are no more active threads) and the
 */
-void run_scheduler(void); 
+void run_scheduler(void);
 
 /**
   @brief Initialize the scheduler.
 
    This function is called during kernel initialization.
  */
-void initialize_scheduler(void); 
+void initialize_scheduler(void);
 
 
 /**
-  @brief Quantum (in microseconds) 
+  @brief Quantum (in microseconds)
 
   This is the default quantum for each thread, in microseconds.
   */

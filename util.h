@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <setjmp.h>
 #include <assert.h>
+#include "unit_testing.h"
 
 /**
 	@file util.h
@@ -51,8 +52,8 @@ __FILE__, __LINE__, __FUNCTION__, (msg)); abort(); }
 /**
 	@brief Print an error message to stderr and abort.
 
-	This macro will print a readable message (using @c FATAL) 
-	corresponding to a unix error code, usually stored in 
+	This macro will print a readable message (using @c FATAL)
+	corresponding to a unix error code, usually stored in
 	@c errno, or returned from a function.
 
 	@param errcode a unix error code
@@ -63,7 +64,7 @@ __FILE__, __LINE__, __FUNCTION__, (msg)); abort(); }
 /**
 	@brief Wrap a unix call to check for errors.
 
-	This macro can wrap a call whose (integer) return value 
+	This macro can wrap a call whose (integer) return value
 	is 0 for success or an error code for error.
 
 	For example:
@@ -77,7 +78,7 @@ __FILE__, __LINE__, __FUNCTION__, (msg)); abort(); }
 /**
 	@brief Wrap a unix call to check for errors.
 
-	This macro can wrap a call whose (integer) return value 
+	This macro can wrap a call whose (integer) return value
 	is 0 for success or -1 for failure, with an error code stored
 	in errno.
 
@@ -86,13 +87,13 @@ __FILE__, __LINE__, __FUNCTION__, (msg)); abort(); }
 	CHECK(gettimeofday(t, NULL));
 	@endcode
 	@see CHECK
-*/	
+*/
 #define CHECK(cmd)  { if((cmd)==-1) FATALERR(errno); }
 
 /**
 	@brief Check a condition and abort if it fails.
 
-	This macro will check a boolean condition and 
+	This macro will check a boolean condition and
 	abort with a message if it does not hold. It is used to
 	check parameters of functions.
 
@@ -112,10 +113,10 @@ __FILE__, __LINE__, __FUNCTION__, (msg)); abort(); }
   */
 static inline void * xmalloc (size_t size)
 {
-  void *value = malloc (size);
-  if (value == 0)
-    FATAL("virtual memory exhausted");
-  return value;
+	void *value = malloc (size);
+	if (value == 0)
+	{ FATAL("virtual memory exhausted"); }
+	return value;
 }
 
 
@@ -136,7 +137,7 @@ static inline void * xmalloc (size_t size)
 	--------
 
 	This data structure is a doubly-linked circular list, whose implementation
-	is based on the splicing operation. 
+	is based on the splicing operation.
 
 	In a circular list, the nodes form a ring. For example if a, b, and c
 	are nodes, a ring may look like
@@ -154,10 +155,10 @@ static inline void * xmalloc (size_t size)
 	The splicing operation between two rlnodes a and b means simply to
 	swap their @c next pointers (also adjusting the 'prev' pointers appropriately).
 	Splicing two nodes on different rings, joins the two rings. Splicing two
-	nodes on the same ring, splits the ring. 
+	nodes on the same ring, splits the ring.
 	For example, @c splice(a,c) on ring
-	[a,b,c,d] would create two rings [a,d] and [b,c]. 
-	A splice can be reversed by repeating it; continuing the previous example, 
+	[a,b,c,d] would create two rings [a,d] and [b,c].
+	A splice can be reversed by repeating it; continuing the previous example,
 	given rings [a,d] and [b,c], splice(a,c) will create ring [a,b,c,d] again.
 	The precise definition of splice
 	is the following:
@@ -174,8 +175,8 @@ static inline void * xmalloc (size_t size)
 	[a, x..., b, y...]     ==>   [a, y...]  [b, x...]
 	@endverbatim
 
-	To implement lists, an rlnode object is used 
-	as _sentinel_,  that is, it holds no data and is not properly part of the 
+	To implement lists, an rlnode object is used
+	as _sentinel_,  that is, it holds no data and is not properly part of the
 	list. If L is the list node, then ring  [C, L, A, B]  represents the list {A,B,C}.
 	The empty list is represented as [L].
 
@@ -190,7 +191,7 @@ static inline void * xmalloc (size_t size)
 	push_front(L, N)      ::  splice(L, N)
 	push_back(L, N)       ::  splice(L->prev, N)
 	pop_front(L)          ::  return splice(L, L->next)
-	pop_back(L)           ::  return splice(L, L->prev) 
+	pop_back(L)           ::  return splice(L, L->prev)
 	remove(N)             ::  return splice(N->prev, N)
 	insert_after(P, N)    ::  splice(P, N)
 	insert_before(P, N)   ::  splice(P->prev, N)
@@ -218,8 +219,8 @@ static inline void * xmalloc (size_t size)
 
 	rlnode n1, n2;
 
-	// The following four lines are equivalent 
-	rlnode_init(& n1, mytcb); 
+	// The following four lines are equivalent
+	rlnode_init(& n1, mytcb);
 	rlnode_new(& n1)->tcb = mytcb;
 	rlnode_init(& n1, NULL);  n1->tcb = mytcb;
 	rlnode_new(& n1);  n1->tcb = mytcb;
@@ -234,12 +235,12 @@ static inline void * xmalloc (size_t size)
 
 	A list is defined by a sentinel node. For example,
 	@code
-	rlnode mylist;  
+	rlnode mylist;
 	rlnode_new(&mylist);
 	@endcode
-	Note that, although we did not store a value into the sentinel node, we actually 
+	Note that, although we did not store a value into the sentinel node, we actually
 	could do so if desired.
-	
+
 	Once a list is created, it needs to be filled with data.
 	There are routines for adding nodes to the head and tail of a list, or in an intermediate
 	location. Also, lists can be compared for equality, have their length taken, checked for
@@ -289,7 +290,8 @@ typedef struct thread_control_block TCB;	/**< @brief Forward declaration */
 typedef struct core_control_block CCB;		/**< @brief Forward declaration */
 typedef struct device_control_block DCB;	/**< @brief Forward declaration */
 typedef struct file_control_block FCB;		/**< @brief Forward declaration */
-
+/*Our edits*/
+typedef struct thread_information T_Info;	/**< @brief Forward declaration */
 /** @brief A convenience typedef */
 typedef struct resource_list_node * rlnode_ptr;
 
@@ -297,39 +299,41 @@ typedef struct resource_list_node * rlnode_ptr;
 	@brief List node
 */
 typedef struct resource_list_node {
-  
-  /** @brief The list node's key.
-     
-     The key (data element) of a list node is 
-     stored in a union of several pointer and integer types.
-     This allows for easy access, without the need for casting. 
-     For example,
-     \code
-     TCB* tcb = mynode->tcb;
-     \endcode
-     */
-  union {
-    PCB* pcb; 
-    TCB* tcb;
-    CCB* ccb;
-    DCB* dcb;
-    FCB* fcb;
-    void* obj;
-    rlnode_ptr node;
-    intptr_t num;
-    uintptr_t unum;
-  };
 
-  /* list pointers */
-  rlnode_ptr prev;  /**< @brief Pointer to previous node */
-  rlnode_ptr next;	/**< @brief Pointer to next node */
+	/** @brief The list node's key.
+
+	   The key (data element) of a list node is
+	   stored in a union of several pointer and integer types.
+	   This allows for easy access, without the need for casting.
+	   For example,
+	   \code
+	   TCB* tcb = mynode->tcb;
+	   \endcode
+	   */
+	union {
+		/*Our edits*/
+		T_Info* t_info;
+		PCB* pcb;
+		TCB* tcb;
+		CCB* ccb;
+		DCB* dcb;
+		FCB* fcb;
+		void* obj;
+		rlnode_ptr node;
+		intptr_t num;
+		uintptr_t unum;
+	};
+
+	/* list pointers */
+	rlnode_ptr prev;  /**< @brief Pointer to previous node */
+	rlnode_ptr next;	/**< @brief Pointer to next node */
 } rlnode;
 
 
 /**
 	@brief Initialize a node as a singleton ring.
 
-	This function will initialize the pointers of a node 
+	This function will initialize the pointers of a node
 	to form a singleton ring. The node is returned, so that
 	one can write code such as
 	\code
@@ -339,16 +343,16 @@ typedef struct resource_list_node {
 	@param p the node to initialize into a singleton
 	@returns the node itself
  */
-static inline rlnode* rlnode_new(rlnode* p) 
-{ 
-	p->prev = p->next = p; 
+static inline rlnode* rlnode_new(rlnode* p)
+{
+	p->prev = p->next = p;
 	return p;
 }
 
 /**
 	@brief Initialize a node as a singleton ring.
 
-	This function will initialize the pointers of a node 
+	This function will initialize the pointers of a node
 	to form a singleton ring, and store the . The node is returned, so that
 	one can write code such as
 	\code
@@ -360,20 +364,20 @@ static inline rlnode* rlnode_new(rlnode* p)
 	@param ptr the pointer to store as the node key
 	@returns the node itself
  */
-static inline rlnode* rlnode_init(rlnode* p, void* ptr)  
+static inline rlnode* rlnode_init(rlnode* p, void* ptr)
 {
-	rlnode_new(p)->obj = ptr; 
+	rlnode_new(p)->obj = ptr;
 	return p;
 }
 
 
-/** 
+/**
 	@brief Swap two pointers to rlnode.
 */
-static inline void rlnode_swap(rlnode_ptr *p, rlnode_ptr *q) 
+static inline void rlnode_swap(rlnode_ptr *p, rlnode_ptr *q)
 {
-  rlnode *temp;
-  temp = *p;  *p = *q; *q = temp;  
+	rlnode *temp;
+	temp = *p;  *p = *q; *q = temp;
 }
 
 /**
@@ -388,9 +392,9 @@ static inline void rlnode_swap(rlnode_ptr *p, rlnode_ptr *q)
 */
 static inline rlnode* rl_splice(rlnode *a, rlnode *b)
 {
-  rlnode_swap( &(a->next->prev), &(b->next->prev) );
-  rlnode_swap( &(a->next), & (b->next) );
-  return b;
+	rlnode_swap( &(a->next->prev), &(b->next->prev) );
+	rlnode_swap( &(a->next), & (b->next) );
+	return b;
 }
 
 /**
@@ -408,34 +412,34 @@ static inline rlnode* rlist_remove(rlnode* a) { rl_splice(a, a->prev); return a;
 	@param a the list to check
 	@returns true if the list is empty, else 0.
  */
-static inline int is_rlist_empty(rlnode* a) { return a==a->next; }
+static inline int is_rlist_empty(rlnode* a) { return a == a->next; }
 
 /**
 	@brief insert at the head of a list.
 
-	Assuming that @c node is not in the ring of @c list, 
-	this function inserts the ring  of @c node (often a singleton) 
+	Assuming that @c node is not in the ring of @c list,
+	this function inserts the ring  of @c node (often a singleton)
 	to the head of @c list.
 
-	This function is equivalent to @c splice(list,node). 
+	This function is equivalent to @c splice(list,node).
   */
 static inline void rlist_push_front(rlnode* list, rlnode* node) { rl_splice(list, node); }
 
 /**
 	@brief insert at the tail of a list.
 
-	Assuming that @c node is not in the ring of @c list, 
-	this function inserts the ring  of @c node (often a singleton) 
+	Assuming that @c node is not in the ring of @c list,
+	this function inserts the ring  of @c node (often a singleton)
 	to the head of @c list.
 
-	This function is equivalent to @c splice(list->prev,node). 
+	This function is equivalent to @c splice(list->prev,node).
   */
 static inline void rlist_push_back(rlnode* list, rlnode* node) { rl_splice(list->prev, node); }
 
 /**
 	@brief Remove and return the head of the list.
 
-	This function, applied on a non-empty list, will remove the head of 
+	This function, applied on a non-empty list, will remove the head of
 	the list and return in.
 */
 static inline rlnode* rlist_pop_front(rlnode* list) { return rl_splice(list, list->next); }
@@ -443,7 +447,7 @@ static inline rlnode* rlist_pop_front(rlnode* list) { return rl_splice(list, lis
 /**
 	@brief Remove and return the tail of the list.
 
-	This function, applied on a non-empty list, will remove the tail of 
+	This function, applied on a non-empty list, will remove the tail of
 	the list and return in.
 */
 static inline rlnode* rlist_pop_back(rlnode* list) { return rl_splice(list, list->prev); }
@@ -452,14 +456,22 @@ static inline rlnode* rlist_pop_back(rlnode* list) { return rl_splice(list, list
 	@brief Return the length of a list.
 
 	This function returns the length of a list.
-	@note the cost of this operation is @f$ O(n) @f$  
+	@note the cost of this operation is @f$ O(n) @f$
 */
-static inline size_t rlist_len(rlnode* list) 
+static inline size_t rlist_len(rlnode* list)
 {
+	ASSERT(list!=NULL);
 	unsigned int count = 0;
 	rlnode* p = list->next;
-	while(p!=list) {
+	 ASSERT(p!=NULL);
+     ASSERT(p->next!=NULL);
+	while (p != list) {
+        ASSERT(p!=NULL);
+        ASSERT(p->next!=NULL);
 		p = p->next;
+		ASSERT(p!=NULL);
+
+        ASSERT(p->next!=NULL);
 		count++;
 	}
 	return count;
@@ -470,21 +482,19 @@ static inline size_t rlist_len(rlnode* list)
 
 	@param L1 the first list
 	@param L2 the second list
-	@returns true iff two lists are equal, else false. 
+	@returns true iff two lists are equal, else false.
  */
 static inline int rlist_equal(rlnode* L1, rlnode* L2)
 {
 	rlnode *i1 = L1->next;
 	rlnode *i2 = L2->next;
-
-	while(i1!=L1) {
-		if(i2==L2 || i1->num != i2->num)
-			return 0;
-		i1 = i1->next; 
+	while (i1 != L1) {
+		if (i2 == L2 || i1->num != i2->num)
+		{ return 0; }
+		i1 = i1->next;
 		i2 = i2->next;
 	}
-
-	return i2==L2;
+	return i2 == L2;
 }
 
 /**
@@ -518,16 +528,15 @@ static inline void rlist_prepend(rlnode* ldest, rlnode* lsrc)
 /**
 	@brief Reverse a ring or list.
 
-	This function will reverse the direction of a ring. 
+	This function will reverse the direction of a ring.
   */
 static inline void rlist_reverse(rlnode* l)
 {
 	rlnode *p = l;
-
 	do {
 		rlnode_swap(& p->prev, & p->next);
 		p = p->next;
-	} while(p != l);
+	} while (p != l);
 }
 
 /**
@@ -542,18 +551,18 @@ static inline void rlist_reverse(rlnode* l)
   */
 static inline rlnode* rlist_find(rlnode* List, void* key, rlnode* fail)
 {
-	rlnode* i= List->next;
-	while(i!=List) {
-		if(i->obj == key)
-			return i;
+	rlnode* i = List->next;
+	while (i != List) {
+		if (i->obj == key)
+		{ return i; }
 		else
-			i = i->next;
+		{ i = i->next; }
 	}
 	return fail;
 }
 
 /**
-	@brief Move nodes 
+	@brief Move nodes
 
 	Append all nodes of Lsrc which satisfy pred (that is, pred(...) returns non-zero)
 	to the end of Ldest.
@@ -561,8 +570,8 @@ static inline rlnode* rlist_find(rlnode* List, void* key, rlnode* fail)
 static inline void rlist_select(rlnode* Lsrc, rlnode* Ldest, int (*pred)(rlnode*))
 {
 	rlnode* I = Lsrc;
-	while(I->next != Lsrc) {
-		if(pred(I->next)) {
+	while (I->next != Lsrc) {
+		if (pred(I->next)) {
 			rlnode* p = rlist_remove(I->next);
 			rlist_push_back(Ldest, p);
 		} else {
@@ -591,10 +600,10 @@ static inline void rlist_select(rlnode* Lsrc, rlnode* Ldest, int (*pred)(rlnode*
 */
 static inline size_t argvlen(size_t argc, const char** argv)
 {
-	size_t l=0;
-	for(size_t i=0; i<argc; i++) {
-		l+= strlen(argv[i])+1;
-	}	
+	size_t l = 0;
+	for (size_t i = 0; i < argc; i++) {
+		l += strlen(argv[i]) + 1;
+	}
 	return l;
 }
 
@@ -613,14 +622,13 @@ static inline size_t argvlen(size_t argc, const char** argv)
 */
 static inline size_t argvpack(void* args, size_t argc, const char** argv)
 {
-	int argl=0;
-
+	int argl = 0;
 	char* pos = args;
-	for(size_t i=0; i<argc; i++) {
+	for (size_t i = 0; i < argc; i++) {
 		const char *s = argv[i];
-		while(( *pos++ = *s++ )) argl++;
+		while (( *pos++ = *s++ )) { argl++; }
 	}
-	return argl+argc;
+	return argl + argc;
 }
 
 /**
@@ -634,12 +642,11 @@ static inline size_t argvpack(void* args, size_t argc, const char** argv)
 */
 static inline size_t argscount(int argl, void* args)
 {
-	int n=0;
+	int n = 0;
 	char* a = args;
-
-	for(int i=0; i<argl; i++)
-		if(a[i]=='\0') n++;
-	return n;	
+	for (int i = 0; i < argl; i++)
+		if (a[i] == '\0') { n++; }
+	return n;
 }
 
 /**
@@ -659,9 +666,9 @@ static inline size_t argscount(int argl, void* args)
 static inline void* argvunpack(size_t argc, const char** argv, int argl, void* args)
 {
 	char* a = args;
-	for(int i=0;i<argc;i++) {
+	for (int i = 0; i < argc; i++) {
 		argv[i] = a;
-		while(*a++); /* skip non-0 */
+		while (*a++); /* skip non-0 */
 	}
 	return a;
 }
@@ -683,12 +690,12 @@ static inline void* argvunpack(size_t argc, const char** argv, int argl, void* a
 	stack need to propagate the error. This makes coding tedious and
 	error-prone.
 
-	In C, there is a standard-library facility that can be used to 
+	In C, there is a standard-library facility that can be used to
 	implement such functionality, available by including `<setjmp.h>`.
-	The help is in the form of functions @c setjmp() and @c longjmp 
-	(and their vatiatons). In this 	library, these standard calls, 
+	The help is in the form of functions @c setjmp() and @c longjmp
+	(and their vatiatons). In this 	library, these standard calls,
 	wrapped by some suitable macros, and using some GNU GCC extensions
-	(nested functions),	provide some easy-to-use exception-like programming 
+	(nested functions),	provide some easy-to-use exception-like programming
 	structures.
 
 	## Examples
@@ -702,24 +709,24 @@ static inline void* argvunpack(size_t argc, const char** argv, int argl, void* a
 
 		ON_ERROR {
 			printf("Error in what I was doing\n");
-			// After this, execute the finally 
+			// After this, execute the finally
 		}
 
 		FINALLY(e) {
-			if(e) 
-				printf("Continuing after error\n");			
+			if(e)
+				printf("Continuing after error\n");
 			else
 				printf("Finished without error\n");
 		}
 
-		// do something here 
+		// do something here
 		if(error_happens)
 			raise_exception(context);
 
 		// or call a function that may call raise_exception()
 		do_something_else();
 
-		// If we leave here, FINALLY will be executed 
+		// If we leave here, FINALLY will be executed
 	}
 	@endcode
 
@@ -745,7 +752,7 @@ static inline void* argvunpack(size_t argc, const char** argv, int argl, void* a
 		ON_ERROR {
 			release_resource2(r2);
 		}
-		
+
 		// This may raise_exception(...)
 		r3 = acquire_resrouce3(r1, r2);
 	}
@@ -756,11 +763,11 @@ static inline void* argvunpack(size_t argc, const char** argv, int argl, void* a
 
 	The workings are based on the idea of an **exception stack**. The elements
 	of this stack are called __exception stack frames__ (ESFs). Each thread should
-	have its own exception stack. 
+	have its own exception stack.
 	When a TRY_WITH(...) block begins, a new ESF is pushed to the stack, and the
-	block starts to execute. 
-	
-	Each ESF has two lists of functions of type @ exception_handler, which is defined 
+	block starts to execute.
+
+	Each ESF has two lists of functions of type @ exception_handler, which is defined
 	as  `void (*)(int)`. The nodes for these lists are `struct exception_handler_frame`
 	objects.  Initially, the new ESF has empty lists.  The first list is the list
 	of **catchers** and the second is the list of **finalizers**.
@@ -774,8 +781,8 @@ static inline void* argvunpack(size_t argc, const char** argv, int argl, void* a
 
 	If at some point the function `raise_exception()` is called, execution jumps
 	back at the TRY-block at the top of the exception stack. There, each catcher is
-	first executed, followed by all the finalizers. At the end, the ESF is popped 
-	from the exception stack. Then, if at least one catcher 
+	first executed, followed by all the finalizers. At the end, the ESF is popped
+	from the exception stack. Then, if at least one catcher
 	did execute, the exception is considered handled, and execution continues after
 	the TRY-block. If however there was no catcher executed, and the exception stack
 	is non-empty, then `raise_exception()` is called again, to repeat the process.
@@ -785,10 +792,10 @@ static inline void* argvunpack(size_t argc, const char** argv, int argl, void* a
 	@code
 	typedef struct exception_stack_frame** exception_context;
 	@endcode
-	A context needs to be available to our code in two places: when a 
+	A context needs to be available to our code in two places: when a
 	`TRY_WITH(context)` block is defined, and when `raise_exception(context)` is
 	called.
-	
+
 	One can simply define a context as a global variable:
 	@code
 	// at top level
@@ -809,7 +816,7 @@ static inline void* argvunpack(size_t argc, const char** argv, int argl, void* a
 	@code
 	struct TCB {
 		....
-		struct execution_stack_frame* exception_stack = NULL;	
+		struct execution_stack_frame* exception_stack = NULL;
 	}
 
 	#define TRY  TRY_WITH(& CURTHREAD->exception_stack)
@@ -829,7 +836,7 @@ static inline void* argvunpack(size_t argc, const char** argv, int argl, void* a
 		}
 
 		... // stuff
-	
+
 		unlock_mutex();
 	}
 	@endcode
@@ -841,7 +848,7 @@ static inline void* argvunpack(size_t argc, const char** argv, int argl, void* a
 			unlock_mutex();
 		}
 
-		... // stuff	
+		... // stuff
 	}
 	@endcode
 
@@ -892,8 +899,8 @@ void exception_unwind(exception_context context, int errcode);
 	@internal
 	@{
 */
-static inline void __exc_push_frame(exception_context context, 
-	struct exception_stack_frame* frame)
+static inline void __exc_push_frame(exception_context context,
+                                    struct exception_stack_frame* frame)
 {
 	frame->next = *context;
 	*context = frame;
@@ -901,8 +908,8 @@ static inline void __exc_push_frame(exception_context context,
 
 static inline struct exception_stack_frame* __exc_try(exception_context context, int errcode)
 {
-	if(errcode==0) 
-		return *context;
+	if (errcode == 0)
+	{ return *context; }
 	else {
 		exception_unwind(context, errcode);
 		return NULL;

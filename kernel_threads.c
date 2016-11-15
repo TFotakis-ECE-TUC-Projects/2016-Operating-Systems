@@ -8,7 +8,19 @@
   */
 Tid_t CreateThread(Task task, int argl, void* args)
 {
-  return NOTHREAD;
+  /*TCB* taskTcb = spawn_multithread(CURPROC, task, int argl, void* args);
+  T_Info tmp = {
+    .exitval = 0,
+    .thread,
+    .task = task,
+    .argl = argl,
+    .args = args,
+    .condVar = NULL;
+  }
+  rlnode node;
+  rlnode_new(&node, tmp);
+  rlist_push_back(&CURPROC->t_info_list, node);*/
+  return NOTHREAD/*(Tid_t) taskTcb*/;
 }
 
 /**
