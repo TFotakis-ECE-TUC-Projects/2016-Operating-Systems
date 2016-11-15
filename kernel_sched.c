@@ -131,6 +131,7 @@ static void thread_start() {
 /*
   Initialize and return a new TCB
 */
+void sched_queue_add(TCB *tcb);
 
 TCB *spawn_thread(PCB *pcb, void (*func)()) {
     /* The allocated thread size must be a multiple of page size */
@@ -160,6 +161,7 @@ TCB *spawn_thread(PCB *pcb, void (*func)()) {
             VALGRIND_STACK_REGISTER(stack.ss_sp, stack.ss_sp + THREAD_STACK_SIZE);
 #endif
     /* increase the count of active threads */
+//    sched_queue_add(tcb);//--------------------------------------------------------------------------------------
     Mutex_Lock(&active_threads_spinlock);
     active_threads++;
     Mutex_Unlock(&active_threads_spinlock);
@@ -223,8 +225,12 @@ void ici_handler() {
 void sched_queue_add(TCB *tcb) {
     /* Insert at the end of the scheduling list */
     Mutex_Lock(&sched_spinlock);
-    ASSERT(tcb->priority < MAX_PRIORITY && tcb->priority >= 0);
-    rlist_push_back(&priority_table[tcb->priority], &tcb->sched_node);
+    assert(tcb->priority < MAX_PRIORITY && tcb->priority >= 0);
+//    if(priority_table[tcb->priority].tcb==NULL){//--------------------------------------------------------------------
+//        rlnode_init(&priority_table[tcb->priority], tcb);
+//    }else{
+        rlist_push_back(&priority_table[tcb->priority], &tcb->sched_node);
+//    }
     Mutex_Unlock(&sched_spinlock);
     /* Restart possibly halted cores */
     cpu_core_restart_one();
@@ -317,7 +323,7 @@ void yield() {
     }
     Mutex_Unlock(&current->state_spinlock);
     /*Our edits*/
-    thread_list_priority_calculation();
+    thread_list_priority_calculation();//--------------------------------------------------------------------------
     current_priority_calculation(quantum_left);
     /* Get next */
     TCB *next = sched_queue_select();
@@ -342,41 +348,37 @@ void yield() {
 
 
 /*Our edits*/
-void thread_list_priority_calculation() {
+void thread_list_priority_calculation(){
+    Mutex_Lock(&sched_spinlock);
     for (int i = 0; i < MAX_PRIORITY - 1; i++) {
+        assert(&priority_table[i] != NULL);
         int length = rlist_len(&priority_table[i]);
-//        MSG("\n%d\n",length);
-        for (int j = 0; j < length; j++) {
+#define BOOL(e) ((e)?1:0)
+        assert( BOOL(is_rlist_empty(&priority_table[i])) == BOOL(length==0)  );
+        if (length != 0) {
+            rlnode *tmp = NULL;
+            assert(length!=0);
+            for (int j = 0; j < length; j++) {
+                tmp = rlist_pop_front(&priority_table[i]);
+                assert(tmp != NULL);
+                assert(tmp->tcb != NULL);
+                assert(tmp->tcb->priority < MAX_PRIORITY);
+                if (tmp->tcb->quantums_passed + 1 >= MAX_QUANTUMS_PASSED) {
+                    tmp->tcb->priority=(tmp->tcb->priority + 1) >= MAX_PRIORITY - 1 ? MAX_PRIORITY - 1 : tmp->tcb->priority + 1;
+                    tmp->tcb->quantums_passed=0;
+                }else{
+                    tmp->tcb->quantums_passed++;
+                }
+                rlist_push_back(&priority_table[tmp->tcb->priority], tmp);
+            }
         }
     }
-/*
-    for (int i = 0; i < MAX_PRIORITY - 1; i++) {
-        int length = rlist_len(&priority_table[i]);
-        rlnode *tmp = NULL;
-        for (int j = 0; j < length; j++) {
-            ASSERT(rlist_len(&priority_table[i]) != 0);
-            ASSERT(&priority_table[i] != NULL);
-            ASSERT(tmp != NULL);
-            ASSERT(tmp->tcb != NULL);
-            ASSERT(tmp->tcb->priority < MAX_PRIORITY);
-            tmp = rlist_pop_front(&priority_table[i]);
-            tmp->tcb->quantums_passed++;
-            rlist_push_back(&priority_table[i], tmp);
-        }
-        tmp = rlist_pop_front(&priority_table[i]);
-        if (tmp->tcb->quantums_passed >= MAX_QUANTUMS_PASSED) {
-            tmp->tcb->quantums_passed = 0;
-            tmp->tcb->priority = i + 1;
-            rlist_push_back(&priority_table[i + 1], tmp);
-        } else {
-            rlist_push_front(&priority_table[i], tmp);
-        }
-    }
-*/
+    Mutex_Unlock(&sched_spinlock);
 }
 
 
 void current_priority_calculation(int quantum_left) {
+    Mutex_Lock(&sched_spinlock);
     if (CURTHREAD->yield_state == IO) {
         CURTHREAD->priority =
                 (CURTHREAD->priority + 1) >= MAX_PRIORITY - 1 ? MAX_PRIORITY - 1 : CURTHREAD->priority + 1;
@@ -386,6 +388,7 @@ void current_priority_calculation(int quantum_left) {
     } else if (quantum_left <= 0) {
         CURTHREAD->priority = (CURTHREAD->priority - 1) <= 0 ? 0 : CURTHREAD->priority - 1;
     }
+    Mutex_Unlock(&sched_spinlock);
 }
 
 

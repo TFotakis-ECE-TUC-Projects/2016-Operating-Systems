@@ -111,12 +111,10 @@ __FILE__, __LINE__, __FUNCTION__, (msg)); abort(); }
 	@param size the number of bytes allocated via malloc
 	@returns the new memory block
   */
-static inline void * xmalloc (size_t size)
-{
-	void *value = malloc (size);
-	if (value == 0)
-	{ FATAL("virtual memory exhausted"); }
-	return value;
+static inline void *xmalloc(size_t size) {
+    void *value = malloc(size);
+    if (value == 0) {FATAL("virtual memory exhausted"); }
+    return value;
 }
 
 
@@ -285,48 +283,48 @@ static inline void * xmalloc (size_t size)
  */
 
 
-typedef struct process_control_block PCB;	/**< @brief Forward declaration */
-typedef struct thread_control_block TCB;	/**< @brief Forward declaration */
-typedef struct core_control_block CCB;		/**< @brief Forward declaration */
-typedef struct device_control_block DCB;	/**< @brief Forward declaration */
-typedef struct file_control_block FCB;		/**< @brief Forward declaration */
+typedef struct process_control_block PCB;    /**< @brief Forward declaration */
+typedef struct thread_control_block TCB;    /**< @brief Forward declaration */
+typedef struct core_control_block CCB;        /**< @brief Forward declaration */
+typedef struct device_control_block DCB;    /**< @brief Forward declaration */
+typedef struct file_control_block FCB;        /**< @brief Forward declaration */
 /*Our edits*/
-typedef struct thread_information T_Info;	/**< @brief Forward declaration */
+typedef struct thread_information T_Info;    /**< @brief Forward declaration */
 /** @brief A convenience typedef */
-typedef struct resource_list_node * rlnode_ptr;
+typedef struct resource_list_node *rlnode_ptr;
 
 /**
 	@brief List node
 */
 typedef struct resource_list_node {
 
-	/** @brief The list node's key.
+    /** @brief The list node's key.
 
-	   The key (data element) of a list node is
-	   stored in a union of several pointer and integer types.
-	   This allows for easy access, without the need for casting.
-	   For example,
-	   \code
-	   TCB* tcb = mynode->tcb;
-	   \endcode
-	   */
-	union {
-		/*Our edits*/
-		T_Info* t_info;
-		PCB* pcb;
-		TCB* tcb;
-		CCB* ccb;
-		DCB* dcb;
-		FCB* fcb;
-		void* obj;
-		rlnode_ptr node;
-		intptr_t num;
-		uintptr_t unum;
-	};
+       The key (data element) of a list node is
+       stored in a union of several pointer and integer types.
+       This allows for easy access, without the need for casting.
+       For example,
+       \code
+       TCB* tcb = mynode->tcb;
+       \endcode
+       */
+    union {
+        /*Our edits*/
+        T_Info *t_info;
+        PCB *pcb;
+        TCB *tcb;
+        CCB *ccb;
+        DCB *dcb;
+        FCB *fcb;
+        void *obj;
+        rlnode_ptr node;
+        intptr_t num;
+        uintptr_t unum;
+    };
 
-	/* list pointers */
-	rlnode_ptr prev;  /**< @brief Pointer to previous node */
-	rlnode_ptr next;	/**< @brief Pointer to next node */
+    /* list pointers */
+    rlnode_ptr prev;  /**< @brief Pointer to previous node */
+    rlnode_ptr next;    /**< @brief Pointer to next node */
 } rlnode;
 
 
@@ -343,10 +341,9 @@ typedef struct resource_list_node {
 	@param p the node to initialize into a singleton
 	@returns the node itself
  */
-static inline rlnode* rlnode_new(rlnode* p)
-{
-	p->prev = p->next = p;
-	return p;
+static inline rlnode *rlnode_new(rlnode *p) {
+    p->prev = p->next = p;
+    return p;
 }
 
 /**
@@ -364,20 +361,20 @@ static inline rlnode* rlnode_new(rlnode* p)
 	@param ptr the pointer to store as the node key
 	@returns the node itself
  */
-static inline rlnode* rlnode_init(rlnode* p, void* ptr)
-{
-	rlnode_new(p)->obj = ptr;
-	return p;
+static inline rlnode *rlnode_init(rlnode *p, void *ptr) {
+    rlnode_new(p)->obj = ptr;
+    return p;
 }
 
 
 /**
 	@brief Swap two pointers to rlnode.
 */
-static inline void rlnode_swap(rlnode_ptr *p, rlnode_ptr *q)
-{
-	rlnode *temp;
-	temp = *p;  *p = *q; *q = temp;
+static inline void rlnode_swap(rlnode_ptr *p, rlnode_ptr *q) {
+    rlnode *temp;
+    temp = *p;
+    *p = *q;
+    *q = temp;
 }
 
 /**
@@ -390,11 +387,10 @@ static inline void rlnode_swap(rlnode_ptr *p, rlnode_ptr *q)
 	@param b the second node
 	@returns the second node, @c b
 */
-static inline rlnode* rl_splice(rlnode *a, rlnode *b)
-{
-	rlnode_swap( &(a->next->prev), &(b->next->prev) );
-	rlnode_swap( &(a->next), & (b->next) );
-	return b;
+static inline rlnode *rl_splice(rlnode *a, rlnode *b) {
+    rlnode_swap(&(a->next->prev), &(b->next->prev));
+    rlnode_swap(&(a->next), &(b->next));
+    return b;
 }
 
 /**
@@ -405,14 +401,17 @@ static inline rlnode* rl_splice(rlnode *a, rlnode *b)
 	@param a the node to remove from a ring
 	@returns the removed node
 */
-static inline rlnode* rlist_remove(rlnode* a) { rl_splice(a, a->prev); return a; }
+static inline rlnode *rlist_remove(rlnode *a) {
+    rl_splice(a, a->prev);
+    return a;
+}
 
 /** @brief  Check a list for emptiness.
 
 	@param a the list to check
 	@returns true if the list is empty, else 0.
  */
-static inline int is_rlist_empty(rlnode* a) { return a == a->next; }
+static inline int is_rlist_empty(rlnode *a) { return a == a->next; }
 
 /**
 	@brief insert at the head of a list.
@@ -423,7 +422,7 @@ static inline int is_rlist_empty(rlnode* a) { return a == a->next; }
 
 	This function is equivalent to @c splice(list,node).
   */
-static inline void rlist_push_front(rlnode* list, rlnode* node) { rl_splice(list, node); }
+static inline void rlist_push_front(rlnode *list, rlnode *node) { rl_splice(list, node); }
 
 /**
 	@brief insert at the tail of a list.
@@ -434,7 +433,7 @@ static inline void rlist_push_front(rlnode* list, rlnode* node) { rl_splice(list
 
 	This function is equivalent to @c splice(list->prev,node).
   */
-static inline void rlist_push_back(rlnode* list, rlnode* node) { rl_splice(list->prev, node); }
+static inline void rlist_push_back(rlnode *list, rlnode *node) { rl_splice(list->prev, node); }
 
 /**
 	@brief Remove and return the head of the list.
@@ -442,7 +441,7 @@ static inline void rlist_push_back(rlnode* list, rlnode* node) { rl_splice(list-
 	This function, applied on a non-empty list, will remove the head of
 	the list and return in.
 */
-static inline rlnode* rlist_pop_front(rlnode* list) { return rl_splice(list, list->next); }
+static inline rlnode *rlist_pop_front(rlnode *list) { return rl_splice(list, list->next); }
 
 /**
 	@brief Remove and return the tail of the list.
@@ -450,7 +449,7 @@ static inline rlnode* rlist_pop_front(rlnode* list) { return rl_splice(list, lis
 	This function, applied on a non-empty list, will remove the tail of
 	the list and return in.
 */
-static inline rlnode* rlist_pop_back(rlnode* list) { return rl_splice(list, list->prev); }
+static inline rlnode *rlist_pop_back(rlnode *list) { return rl_splice(list, list->prev); }
 
 /**
 	@brief Return the length of a list.
@@ -458,23 +457,19 @@ static inline rlnode* rlist_pop_back(rlnode* list) { return rl_splice(list, list
 	This function returns the length of a list.
 	@note the cost of this operation is @f$ O(n) @f$
 */
-static inline size_t rlist_len(rlnode* list)
-{
-	ASSERT(list!=NULL);
-	unsigned int count = 0;
-	rlnode* p = list->next;
-	 ASSERT(p!=NULL);
-     ASSERT(p->next!=NULL);
-	while (p != list) {
-        ASSERT(p!=NULL);
-        ASSERT(p->next!=NULL);
-		p = p->next;
-		ASSERT(p!=NULL);
-
-        ASSERT(p->next!=NULL);
-		count++;
-	}
-	return count;
+static inline size_t rlist_len(rlnode *list) {
+    ASSERT(list != NULL);
+    unsigned int count = 0;
+    rlnode *p = list->next;
+    assert(p != NULL);
+    assert(p->next != NULL);
+    while (p != list) {
+        p = p->next;
+        assert(p != NULL);
+        assert(p->next != NULL);
+        count++;
+    }
+    return count;
 }
 
 /**
@@ -484,17 +479,15 @@ static inline size_t rlist_len(rlnode* list)
 	@param L2 the second list
 	@returns true iff two lists are equal, else false.
  */
-static inline int rlist_equal(rlnode* L1, rlnode* L2)
-{
-	rlnode *i1 = L1->next;
-	rlnode *i2 = L2->next;
-	while (i1 != L1) {
-		if (i2 == L2 || i1->num != i2->num)
-		{ return 0; }
-		i1 = i1->next;
-		i2 = i2->next;
-	}
-	return i2 == L2;
+static inline int rlist_equal(rlnode *L1, rlnode *L2) {
+    rlnode *i1 = L1->next;
+    rlnode *i2 = L2->next;
+    while (i1 != L1) {
+        if (i2 == L2 || i1->num != i2->num) { return 0; }
+        i1 = i1->next;
+        i2 = i2->next;
+    }
+    return i2 == L2;
 }
 
 /**
@@ -505,10 +498,9 @@ static inline int rlist_equal(rlnode* L1, rlnode* L2)
 	[ldest, X...] [lsrc, Y...]  ==> [ldest, X..., Y...]  [lsrc]
 	@endverbatim
 */
-static inline void rlist_append(rlnode* ldest, rlnode* lsrc)
-{
-	rlist_push_back(ldest, lsrc);
-	rlist_remove(lsrc);
+static inline void rlist_append(rlnode *ldest, rlnode *lsrc) {
+    rlist_push_back(ldest, lsrc);
+    rlist_remove(lsrc);
 }
 
 /**
@@ -519,10 +511,9 @@ static inline void rlist_append(rlnode* ldest, rlnode* lsrc)
 	[ldest, X...] [lsrc, Y...]  ==> [ldest, Y..., X...]  [lsrc]
 	@endverbatim
 */
-static inline void rlist_prepend(rlnode* ldest, rlnode* lsrc)
-{
-	rlist_push_front(ldest, lsrc);
-	rlist_remove(lsrc);
+static inline void rlist_prepend(rlnode *ldest, rlnode *lsrc) {
+    rlist_push_front(ldest, lsrc);
+    rlist_remove(lsrc);
 }
 
 /**
@@ -530,13 +521,12 @@ static inline void rlist_prepend(rlnode* ldest, rlnode* lsrc)
 
 	This function will reverse the direction of a ring.
   */
-static inline void rlist_reverse(rlnode* l)
-{
-	rlnode *p = l;
-	do {
-		rlnode_swap(& p->prev, & p->next);
-		p = p->next;
-	} while (p != l);
+static inline void rlist_reverse(rlnode *l) {
+    rlnode *p = l;
+    do {
+        rlnode_swap(&p->prev, &p->next);
+        p = p->next;
+    } while (p != l);
 }
 
 /**
@@ -549,16 +539,13 @@ static inline void rlist_reverse(rlnode* l)
 	@param key the key to search for in the list
 	@param fail the node pointer to return on failure
   */
-static inline rlnode* rlist_find(rlnode* List, void* key, rlnode* fail)
-{
-	rlnode* i = List->next;
-	while (i != List) {
-		if (i->obj == key)
-		{ return i; }
-		else
-		{ i = i->next; }
-	}
-	return fail;
+static inline rlnode *rlist_find(rlnode *List, void *key, rlnode *fail) {
+    rlnode *i = List->next;
+    while (i != List) {
+        if (i->obj == key) { return i; }
+        else { i = i->next; }
+    }
+    return fail;
 }
 
 /**
@@ -567,17 +554,16 @@ static inline rlnode* rlist_find(rlnode* List, void* key, rlnode* fail)
 	Append all nodes of Lsrc which satisfy pred (that is, pred(...) returns non-zero)
 	to the end of Ldest.
 */
-static inline void rlist_select(rlnode* Lsrc, rlnode* Ldest, int (*pred)(rlnode*))
-{
-	rlnode* I = Lsrc;
-	while (I->next != Lsrc) {
-		if (pred(I->next)) {
-			rlnode* p = rlist_remove(I->next);
-			rlist_push_back(Ldest, p);
-		} else {
-			I = I->next;
-		}
-	}
+static inline void rlist_select(rlnode *Lsrc, rlnode *Ldest, int (*pred)(rlnode *)) {
+    rlnode *I = Lsrc;
+    while (I->next != Lsrc) {
+        if (pred(I->next)) {
+            rlnode *p = rlist_remove(I->next);
+            rlist_push_back(Ldest, p);
+        } else {
+            I = I->next;
+        }
+    }
 }
 
 
@@ -598,13 +584,12 @@ static inline void rlist_select(rlnode* Lsrc, rlnode* Ldest, int (*pred)(rlnode*
 	@returns the total number of bytes in all the strings, including the
 	    terminating zeros.
 */
-static inline size_t argvlen(size_t argc, const char** argv)
-{
-	size_t l = 0;
-	for (size_t i = 0; i < argc; i++) {
-		l += strlen(argv[i]) + 1;
-	}
-	return l;
+static inline size_t argvlen(size_t argc, const char **argv) {
+    size_t l = 0;
+    for (size_t i = 0; i < argc; i++) {
+        l += strlen(argv[i]) + 1;
+    }
+    return l;
 }
 
 
@@ -620,15 +605,14 @@ static inline size_t argvlen(size_t argc, const char** argv)
 	@returns the length of the output argument buffer
 	@see argvlen
 */
-static inline size_t argvpack(void* args, size_t argc, const char** argv)
-{
-	int argl = 0;
-	char* pos = args;
-	for (size_t i = 0; i < argc; i++) {
-		const char *s = argv[i];
-		while (( *pos++ = *s++ )) { argl++; }
-	}
-	return argl + argc;
+static inline size_t argvpack(void *args, size_t argc, const char **argv) {
+    int argl = 0;
+    char *pos = args;
+    for (size_t i = 0; i < argc; i++) {
+        const char *s = argv[i];
+        while ((*pos++ = *s++)) { argl++; }
+    }
+    return argl + argc;
 }
 
 /**
@@ -640,13 +624,12 @@ static inline size_t argvpack(void* args, size_t argc, const char** argv)
 	@param args the argument buffer
 	@returns the number of strings packed in @c args
 */
-static inline size_t argscount(int argl, void* args)
-{
-	int n = 0;
-	char* a = args;
-	for (int i = 0; i < argl; i++)
-		if (a[i] == '\0') { n++; }
-	return n;
+static inline size_t argscount(int argl, void *args) {
+    int n = 0;
+    char *a = args;
+    for (int i = 0; i < argl; i++)
+        if (a[i] == '\0') { n++; }
+    return n;
 }
 
 /**
@@ -663,16 +646,14 @@ static inline size_t argscount(int argl, void* args)
 
 	@see argscount
 */
-static inline void* argvunpack(size_t argc, const char** argv, int argl, void* args)
-{
-	char* a = args;
-	for (int i = 0; i < argc; i++) {
-		argv[i] = a;
-		while (*a++); /* skip non-0 */
-	}
-	return a;
+static inline void *argvunpack(size_t argc, const char **argv, int argl, void *args) {
+    char *a = args;
+    for (int i = 0; i < argc; i++) {
+        argv[i] = a;
+        while (*a++); /* skip non-0 */
+    }
+    return a;
 }
-
 
 
 /**
@@ -873,20 +854,19 @@ typedef void (*exception_handler)(int);
 
 
 struct exception_handler_frame {
-	exception_handler handler;
-	struct exception_handler_frame* next;
+    exception_handler handler;
+    struct exception_handler_frame *next;
 };
 
 
-struct exception_stack_frame
-{
-	struct exception_stack_frame * next;
-	struct exception_handler_frame * catchers;
-	struct exception_handler_frame * finalizers;
-	jmp_buf jbuf;
+struct exception_stack_frame {
+    struct exception_stack_frame *next;
+    struct exception_handler_frame *catchers;
+    struct exception_handler_frame *finalizers;
+    jmp_buf jbuf;
 };
 
-typedef struct exception_stack_frame** exception_context;
+typedef struct exception_stack_frame **exception_context;
 
 void raise_exception(exception_context context);
 
@@ -900,63 +880,59 @@ void exception_unwind(exception_context context, int errcode);
 	@{
 */
 static inline void __exc_push_frame(exception_context context,
-                                    struct exception_stack_frame* frame)
-{
-	frame->next = *context;
-	*context = frame;
+                                    struct exception_stack_frame *frame) {
+    frame->next = *context;
+    *context = frame;
 }
 
-static inline struct exception_stack_frame* __exc_try(exception_context context, int errcode)
-{
-	if (errcode == 0)
-	{ return *context; }
-	else {
-		exception_unwind(context, errcode);
-		return NULL;
-	}
+static inline struct exception_stack_frame *__exc_try(exception_context context, int errcode) {
+    if (errcode == 0) { return *context; }
+    else {
+        exception_unwind(context, errcode);
+        return NULL;
+    }
 }
 
-static inline struct exception_stack_frame* __exc_exit_try(exception_context context)
-{
-	(*context)->catchers = NULL;
-	exception_unwind(context, 0);
-	return NULL;
+static inline struct exception_stack_frame *__exc_exit_try(exception_context context) {
+    (*context)->catchers = NULL;
+    exception_unwind(context, 0);
+    return NULL;
 }
 
-#define __concatenate_tokens(x,y) x ## y
-#define __conc(z,w) __concatenate_tokens(z,w)
+#define __concatenate_tokens(x, y) x ## y
+#define __conc(z, w) __concatenate_tokens(z,w)
 
 /** @} */
 
 #define TRY_WITH(context) \
-	struct exception_stack_frame __conc(__try_,__LINE__) = \
-		{ .catchers=NULL, .finalizers=NULL };\
-	__exc_push_frame((context), & __conc(__try_ , __LINE__) ); \
-	int __conc(__exception_,__LINE__) = setjmp( __conc(__try_,__LINE__).jbuf); \
-	__atomic_signal_fence(__ATOMIC_SEQ_CST);\
-	for(struct exception_stack_frame* __frame = \
-		__exc_try((context), __conc(__exception_, __LINE__) );\
-		__frame != NULL ; \
-		__frame = __exc_exit_try(context)) \
+    struct exception_stack_frame __conc(__try_,__LINE__) = \
+        { .catchers=NULL, .finalizers=NULL };\
+    __exc_push_frame((context), & __conc(__try_ , __LINE__) ); \
+    int __conc(__exception_,__LINE__) = setjmp( __conc(__try_,__LINE__).jbuf); \
+    __atomic_signal_fence(__ATOMIC_SEQ_CST);\
+    for(struct exception_stack_frame* __frame = \
+        __exc_try((context), __conc(__exception_, __LINE__) );\
+        __frame != NULL ; \
+        __frame = __exc_exit_try(context)) \
 
 #define FINALLY(excname)  \
-	struct exception_handler_frame __conc(__xframe_,__LINE__);\
-	__conc(__xframe_, __LINE__).next = __frame->finalizers; \
-	__frame->finalizers = & __conc(__xframe_, __LINE__) ;\
-	auto void __conc(__action_, __LINE__) (int); \
-	__conc(__xframe_,__LINE__).handler = __conc(__action_,__LINE__);\
-	__atomic_signal_fence(__ATOMIC_SEQ_CST);\
-	void __conc(__action_,__LINE__)(int excname) \
+    struct exception_handler_frame __conc(__xframe_,__LINE__);\
+    __conc(__xframe_, __LINE__).next = __frame->finalizers; \
+    __frame->finalizers = & __conc(__xframe_, __LINE__) ;\
+    auto void __conc(__action_, __LINE__) (int); \
+    __conc(__xframe_,__LINE__).handler = __conc(__action_,__LINE__);\
+    __atomic_signal_fence(__ATOMIC_SEQ_CST);\
+    void __conc(__action_,__LINE__)(int excname) \
 
 
 #define ON_ERROR  \
-	struct exception_handler_frame __conc(__xframe_,__LINE__);\
-	__conc(__xframe_, __LINE__).next = __frame->catchers; \
-	__frame->catchers = & __conc(__xframe_, __LINE__) ;\
-	auto void __conc(__action_, __LINE__) (int); \
-	__conc(__xframe_,__LINE__).handler = __conc(__action_,__LINE__);\
-	__atomic_signal_fence(__ATOMIC_SEQ_CST);\
-	void __conc(__action_,__LINE__)(int __dummy) \
+    struct exception_handler_frame __conc(__xframe_,__LINE__);\
+    __conc(__xframe_, __LINE__).next = __frame->catchers; \
+    __frame->catchers = & __conc(__xframe_, __LINE__) ;\
+    auto void __conc(__action_, __LINE__) (int); \
+    __conc(__xframe_,__LINE__).handler = __conc(__action_,__LINE__);\
+    __atomic_signal_fence(__ATOMIC_SEQ_CST);\
+    void __conc(__action_,__LINE__)(int __dummy) \
 
 
 /** @}  exceptions */

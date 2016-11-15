@@ -1,4 +1,4 @@
-*~
+e*~
 *.o
 .depend
 mtask
@@ -10,3 +10,4 @@ validate_api
 test_example
 doc/
 CMakeLists.txt
+.idea/
