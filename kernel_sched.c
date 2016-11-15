@@ -1,14 +1,11 @@
-
 #include <assert.h>
 #include <sys/mman.h>
-
 #include "tinyos.h"
 #include "kernel_cc.h"
 #include "kernel_sched.h"
 #include "kernel_proc.h"
 
 #ifndef NVALGRIND
-
 #include <valgrind/valgrind.h>
 
 #endif
@@ -55,7 +52,6 @@ Mutex active_threads_spinlock = MUTEX_INIT;
 
 /* The memory allocated for the TCB must be a multiple of SYSTEM_PAGE_SIZE */
 #define THREAD_TCB_SIZE   (((sizeof(TCB)+SYSTEM_PAGE_SIZE-1)/SYSTEM_PAGE_SIZE)*SYSTEM_PAGE_SIZE)
-
 #define THREAD_SIZE  (THREAD_TCB_SIZE+THREAD_STACK_SIZE)
 
 //#define MMAPPED_THREAD_MEM
@@ -98,7 +94,6 @@ void *allocate_thread(size_t size) {
 
 #endif
 
-
 /*
   Initialize the thread context. This is done in a platform-specific
   way, using the ucontext library.
@@ -113,7 +108,6 @@ void initialize_context(ucontext_t *ctx, stack_t stack, void (*ctx_func)()) {
     makecontext(ctx, (void *) ctx_func, 0);
 }
 
-
 /*
   This is the function that is used to start normal threads.
 */
@@ -126,7 +120,6 @@ static void thread_start() {
     /* We are not supposed to get here! */
     assert(0);
 }
-
 
 /*
   Initialize and return a new TCB
@@ -167,7 +160,6 @@ TCB *spawn_thread(PCB *pcb, void (*func)()) {
     Mutex_Unlock(&active_threads_spinlock);
     return tcb;
 }
-
 
 /*
   This is called with tcb->state_spinlock locked !
@@ -218,7 +210,6 @@ void ici_handler() {
     /* noop for now... */
 }
 
-
 /*
   Add PCB to the end of the scheduler list.
 */
@@ -226,16 +217,11 @@ void sched_queue_add(TCB *tcb) {
     /* Insert at the end of the scheduling list */
     Mutex_Lock(&sched_spinlock);
     assert(tcb->priority < MAX_PRIORITY && tcb->priority >= 0);
-//    if(priority_table[tcb->priority].tcb==NULL){//--------------------------------------------------------------------
-//        rlnode_init(&priority_table[tcb->priority], tcb);
-//    }else{
-        rlist_push_back(&priority_table[tcb->priority], &tcb->sched_node);
-//    }
+    rlist_push_back(&priority_table[tcb->priority], &tcb->sched_node);
     Mutex_Unlock(&sched_spinlock);
     /* Restart possibly halted cores */
     cpu_core_restart_one();
 }
-
 
 /*
   Remove the head of the scheduler list, if any, and
@@ -254,7 +240,6 @@ TCB *sched_queue_select() {
     return sel == NULL ? NULL : sel->tcb; /* When the list is empty, this is NULL */
 }
 
-
 /*
   Make the process ready.
  */
@@ -271,7 +256,6 @@ void wakeup(TCB *tcb) {
     /* Restore preemption state */
     if (oldpre) { preempt_on; }
 }
-
 
 /*
   Atomically put the current process to sleep, after unlocking mx.
@@ -296,7 +280,6 @@ void sleep_releasing(Thread_state state, Mutex *mx) {
     /* Restore preemption state */
     if (preempt) { preempt_on; }
 }
-
 
 /* This function is the entry point to the scheduler's context switching */
 
@@ -323,7 +306,7 @@ void yield() {
     }
     Mutex_Unlock(&current->state_spinlock);
     /*Our edits*/
-    thread_list_priority_calculation();//--------------------------------------------------------------------------
+    thread_list_priority_calculation();
     current_priority_calculation(quantum_left);
     /* Get next */
     TCB *next = sched_queue_select();
@@ -346,27 +329,27 @@ void yield() {
     gain(preempt);
 }
 
-
 /*Our edits*/
-void thread_list_priority_calculation(){
+void thread_list_priority_calculation() {
     Mutex_Lock(&sched_spinlock);
     for (int i = 0; i < MAX_PRIORITY - 1; i++) {
         assert(&priority_table[i] != NULL);
         int length = rlist_len(&priority_table[i]);
 #define BOOL(e) ((e)?1:0)
-        assert( BOOL(is_rlist_empty(&priority_table[i])) == BOOL(length==0)  );
+        assert(BOOL(is_rlist_empty(&priority_table[i])) == BOOL(length == 0));
         if (length != 0) {
             rlnode *tmp = NULL;
-            assert(length!=0);
+            assert(length != 0);
             for (int j = 0; j < length; j++) {
                 tmp = rlist_pop_front(&priority_table[i]);
                 assert(tmp != NULL);
                 assert(tmp->tcb != NULL);
                 assert(tmp->tcb->priority < MAX_PRIORITY);
                 if (tmp->tcb->quantums_passed + 1 >= MAX_QUANTUMS_PASSED) {
-                    tmp->tcb->priority=(tmp->tcb->priority + 1) >= MAX_PRIORITY - 1 ? MAX_PRIORITY - 1 : tmp->tcb->priority + 1;
-                    tmp->tcb->quantums_passed=0;
-                }else{
+                    tmp->tcb->priority =
+                            (tmp->tcb->priority + 1) >= MAX_PRIORITY - 1 ? MAX_PRIORITY - 1 : tmp->tcb->priority + 1;
+                    tmp->tcb->quantums_passed = 0;
+                } else {
                     tmp->tcb->quantums_passed++;
                 }
                 rlist_push_back(&priority_table[tmp->tcb->priority], tmp);
@@ -375,7 +358,6 @@ void thread_list_priority_calculation(){
     }
     Mutex_Unlock(&sched_spinlock);
 }
-
 
 void current_priority_calculation(int quantum_left) {
     Mutex_Lock(&sched_spinlock);
@@ -390,7 +372,6 @@ void current_priority_calculation(int quantum_left) {
     }
     Mutex_Unlock(&sched_spinlock);
 }
-
 
 /*
   This function must be called at the beginning of each new timeslice.
@@ -411,9 +392,12 @@ void gain(int preempt) {
     Mutex_Lock(&current->state_spinlock);
     current->state = RUNNING;
     current->phase = CTX_DIRTY;
-    /*Our edits*/
-    current->quantums_passed = 0; /* Set the current thread's quantums_passed to 0 because it is going to execute again*/
     Mutex_Unlock(&current->state_spinlock);
+    /*Our edits*/
+
+    Mutex_Lock(&sched_spinlock);
+    current->quantums_passed = 0; /* Set the current thread's quantums_passed to 0 because it is going to execute again*/
+    Mutex_Unlock(&sched_spinlock);
     /* Take care of the previous thread */
     if (current != prev) {
         int prev_exit = 0;
@@ -441,7 +425,6 @@ void gain(int preempt) {
     bios_set_timer(QUANTUM);
 }
 
-
 static void idle_thread() {
     /* When we first start the idle thread */
     yield();
@@ -467,7 +450,6 @@ void initialize_scheduler() {
     }
 }
 
-
 void run_scheduler() {
     CCB *curcore = &CURCORE;
     /* Initialize current CCB */
@@ -490,5 +472,3 @@ void run_scheduler() {
     cpu_interrupt_handler(ALARM, NULL);
     cpu_interrupt_handler(ICI, NULL);
 }
-
-

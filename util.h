@@ -458,7 +458,7 @@ static inline rlnode *rlist_pop_back(rlnode *list) { return rl_splice(list, list
 	@note the cost of this operation is @f$ O(n) @f$
 */
 static inline size_t rlist_len(rlnode *list) {
-    ASSERT(list != NULL);
+    assert(list != NULL);
     unsigned int count = 0;
     rlnode *p = list->next;
     assert(p != NULL);
