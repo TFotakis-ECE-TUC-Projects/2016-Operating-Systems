@@ -223,8 +223,7 @@ void ici_handler() {
 void sched_queue_add(TCB *tcb) {
     /* Insert at the end of the scheduling list */
     Mutex_Lock(&sched_spinlock);
-    ASSERT(tcb->priority<MAX_PRIORITY && tcb->priority>=0);
-    ASSERT(tcb->sched_node!=NULL && tcb->sched_node->next!=NULL && tcb->sched_node->prev!=NULL);
+    ASSERT(tcb->priority < MAX_PRIORITY && tcb->priority >= 0);
     rlist_push_back(&priority_table[tcb->priority], &tcb->sched_node);
     Mutex_Unlock(&sched_spinlock);
     /* Restart possibly halted cores */
@@ -240,7 +239,7 @@ TCB *sched_queue_select() {
     Mutex_Lock(&sched_spinlock);
     rlnode *sel = NULL;
     for (int i = MAX_PRIORITY - 1; i >= 0; i--) {
-        if (rlist_len(&priority_table[i])>0) {
+        if (rlist_len(&priority_table[i]) > 0) {
             sel = rlist_pop_front(&priority_table[i]);
             break;
         }
@@ -378,8 +377,7 @@ void thread_list_priority_calculation() {
 
 
 void current_priority_calculation(int quantum_left) {
-    /*  MSG("POLIZOS SEXY\n");
-    */  if (CURTHREAD->yield_state == IO) {
+    if (CURTHREAD->yield_state == IO) {
         CURTHREAD->priority =
                 (CURTHREAD->priority + 1) >= MAX_PRIORITY - 1 ? MAX_PRIORITY - 1 : CURTHREAD->priority + 1;
     } else if (CURTHREAD->yield_state == DEADLOCKED) {
@@ -462,7 +460,7 @@ static void idle_thread() {
  */
 void initialize_scheduler() {
     for (int i = 0; i < MAX_PRIORITY; i++) {
-        rlnode_init(&priority_table[i],NULL);
+        rlnode_init(&priority_table[i], NULL);
     }
 }
 
