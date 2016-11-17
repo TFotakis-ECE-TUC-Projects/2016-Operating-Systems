@@ -20,7 +20,7 @@ Tid_t CreateThread(Task task, int argl, void *args) {
 	CURPROC->threads_counter++;
 	assert(CURPROC == CURTHREAD->owner_pcb);
 	PTCB *ptcb = (PTCB *) malloc(sizeof(PTCB));
-	ptcb->isExited=0;
+	ptcb->isExited = 0;
 	ptcb->isDetached = 0;
 	ptcb->task = task;
 	/* Copy the arguments to new storage, owned by the new process */
@@ -61,9 +61,9 @@ PTCB *FindPTCB(Tid_t tid) {
   @brief Return the Tid of the current thread.
  */
 Tid_t ThreadSelf() {
-//	Mutex_Lock(&kernel_mutex);
+	Mutex_Lock(&kernel_mutex);
 	PTCB *ptcb = FindPTCB((Tid_t) CURTHREAD);
-//	Mutex_Unlock(&kernel_mutex);
+	Mutex_Unlock(&kernel_mutex);
 	return (Tid_t) ptcb;
 }
 /**
@@ -94,10 +94,10 @@ int ThreadJoin(Tid_t tid, int *exitval) {
   */
 int ThreadDetach(Tid_t tid) {
 	PTCB *ptcb = FindPTCB(tid);
-	if(ptcb==NULL || ptcb->isExited){
+	if (ptcb == NULL || ptcb->isExited) {
 		return -1;
-	}else{
-		ptcb->isDetached=1;
+	} else {
+		ptcb->isDetached = 1;
 		return 0;
 	}
 }
@@ -108,12 +108,13 @@ void ThreadExit(int exitval) {
 	Mutex_Lock(&kernel_mutex);
 	MSG("ThreadExit\n");
 	CURPROC->threads_counter--;
-	((PTCB*)ThreadSelf())->isExited=1;
+	Mutex_Unlock(&kernel_mutex);
+	PTCB *ptcb = ((PTCB *) ThreadSelf());
+	Mutex_Lock(&kernel_mutex);
+	ptcb->isExited = 1;
 	if (CURPROC->threads_counter == 0) {
 		Cond_Signal(&CURPROC->condVar);
 	} else {
-//		Mutex_Unlock(&kernel_mutex);
-//		Mutex_Lock(&kernel_mutex);
 		Cond_Broadcast(&CURPROC->condVar);
 	}
 	sleep_releasing(EXITED, &kernel_mutex);
