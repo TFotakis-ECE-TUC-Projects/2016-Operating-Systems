@@ -64,10 +64,7 @@ typedef struct process_thread_control_block {
     Task task;              /**< The thread's function */
     int argl;               /**< The thread's argument length */
     void *args;             /**< The thread's argument string */
-    enum isDetachedEnum{
-        false,
-        true
-    }isDetached;
+    int isDetached;
     rlnode node;
     CondVar condVar;        /**< Condition variable for @c WaitChild */
 } PTCB;
@@ -81,6 +78,7 @@ typedef struct process_thread_control_block {
 void initialize_processes();
 
 void start_main_thread();
+
 /**
   @brief Get the PCB for a PID.
 

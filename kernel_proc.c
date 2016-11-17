@@ -29,8 +29,6 @@ Pid_t get_pid(PCB *pcb) {
 /* Initialize a PCB */
 static inline void initialize_PCB(PCB *pcb) {
     pcb->pstate = FREE;
-//    pcb->argl = 0;
-//    pcb->args = NULL;
     for (int i = 0; i < MAX_FILEID; i++) { pcb->FIDT[i] = NULL; }
     rlnode_init(&pcb->children_list, NULL);
     rlnode_init(&pcb->exited_list, NULL);
@@ -97,11 +95,13 @@ void release_PCB(PCB *pcb) {
   to execute the main thread of a process.
 */
 void start_main_thread() {
-//    int exitval;
-//    PTCB* ptcb = (PTCB*) ThreadSelf();
-    PTCB *ptcb = CURTHREAD->ptcb_node.ptcb;
+    PTCB* ptcb = (PTCB*) ThreadSelf();
+    int argl = ptcb->argl;
+    void *args=ptcb->args;
+    Task call = ptcb->task;
+    int exitval = call(argl,args);
     assert(ptcb != NULL);
-    Exit(ptcb->task(ptcb->argl, ptcb->args));
+    Exit(exitval);
 }
 
 /*
@@ -134,7 +134,7 @@ Pid_t Exec(Task call, int argl, void *args) {
 
     PTCB *tmp = (PTCB *) malloc(sizeof(PTCB));
     tmp->condVar = COND_INIT;
-    tmp->isDetached = false;
+    tmp->isDetached = 0;
     tmp->task = call;
     /* Copy the arguments to new storage, owned by the new process */
     tmp->argl = argl;
@@ -247,8 +247,9 @@ void Exit(int exitval) {
 //        }
 //    }
     if (curproc->threads_counter != 0) {
-        Cond_Wait(&kernel_mutex, &CURTHREAD->ptcb_node.ptcb->condVar);
-
+        PTCB *currentPTCB = (PTCB*) ThreadSelf();
+        Cond_Wait(&kernel_mutex, &currentPTCB->condVar);
+//        Mutex_Lock(&kernel_mutex);
 //        sleep_releasing(STOPPED, &kernel_mutex);// CURTHREAD->ptcb_node.ptcb->condVar
     }
     /* Clean up FIDT */
@@ -281,11 +282,10 @@ void Exit(int exitval) {
     curproc->pstate = ZOMBIE;
     curproc->exitval = exitval;
     /* Bye-bye cruel world */
-    MSG("Exited!!!");
+    MSG("Exit\n");
     sleep_releasing(EXITED, &kernel_mutex);
 }
 
 Fid_t OpenInfo() {
     return NOFILE;
 }
-

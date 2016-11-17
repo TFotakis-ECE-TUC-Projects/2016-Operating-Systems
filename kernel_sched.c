@@ -119,7 +119,7 @@ static void thread_start() {
     gain(1);
     CURTHREAD->thread_func();
     /* We are not supposed to get here! */
-    assert(0);
+//    assert(0);
 }
 
 /*

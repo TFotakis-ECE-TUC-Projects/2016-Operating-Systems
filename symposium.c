@@ -208,6 +208,7 @@ int SymposiumOfThreads(int argl, void* args)
   }
   /* Wait for philosophers to exit */
   for (int i = 0; i < N; i++) {
+    MSG("Join from symposium\n");
     ThreadJoin(thread[i], NULL);
   }
   SymposiumTable_destroy(&S);
