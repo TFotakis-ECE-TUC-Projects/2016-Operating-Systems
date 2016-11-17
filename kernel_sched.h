@@ -25,7 +25,6 @@
 #include "util.h"
 #include "bios.h"
 #include "tinyos.h"
-
 #include "unit_testing.h"
 /*****************************
  *
@@ -41,70 +40,65 @@
   @see Thread_phase
 */
 typedef enum {
-  INIT,       /**< TCB initialising */
-  READY,      /**< A thread ready to be scheduled.   */
-  RUNNING,    /**< A thread running on some core   */
-  STOPPED,    /**< A blocked thread   */
-  EXITED      /**< A terminated thread   */
+    INIT,       /**< TCB initialising */
+    READY,      /**< A thread ready to be scheduled.   */
+    RUNNING,    /**< A thread running on some core   */
+    STOPPED,    /**< A blocked thread   */
+    EXITED      /**< A terminated thread   */
 } Thread_state;
-
 /** @brief Thread phase.
 
   @see Thread_state
 */
 typedef enum {
-  CTX_CLEAN,   /**< Means that, the context stored in the TCB is up-to-date. */
-  CTX_DIRTY    /**< Means that, the context stored in the TCN is garbage. */
+    CTX_CLEAN,   /**< Means that, the context stored in the TCB is up-to-date. */
+    CTX_DIRTY    /**< Means that, the context stored in the TCN is garbage. */
 } Thread_phase;
-
 /** @brief Thread type. */
 typedef enum {
-  IDLE_THREAD,    /**< Marks an idle thread. */
-  NORMAL_THREAD   /**< Marks a normal thread */
+    IDLE_THREAD,    /**< Marks an idle thread. */
+    NORMAL_THREAD   /**< Marks a normal thread */
 } Thread_type;
-
 typedef enum {
-  DEFAULT,
-  IO,
-  DEADLOCKED
+    DEFAULT,
+    IO,
+    DEADLOCKED
 } Yield_state;
-
 /**
   @brief The thread control block
 
   An object of this type is associated to every thread. In this object
   are stored all the metadata that relate to the thread.
 */
-typedef struct thread_control_block
-{
-  PCB* owner_pcb;       /**< This is null for a free TCB */
+typedef struct thread_control_block {
+    PCB *owner_pcb;       /**< This is null for a free TCB */
 
-  ucontext_t context;     /**< The thread context */
+    ucontext_t context;     /**< The thread context */
 
 #ifndef NVALGRIND
-  unsigned valgrind_stack_id; /**< This is useful in order to register the thread stack to valgrind */
+    unsigned valgrind_stack_id; /**< This is useful in order to register the thread stack to valgrind */
 #endif
+    Thread_type type;       /**< The type of thread */
+    Thread_state state;    /**< The state of the thread */
+    Thread_phase phase;    /**< The phase of the thread */
 
-  Thread_type type;       /**< The type of thread */
-  Thread_state state;    /**< The state of the thread */
-  Thread_phase phase;    /**< The phase of the thread */
+    void (*thread_func)();   /**< The function executed by this thread */
 
-  void (*thread_func)();   /**< The function executed by this thread */
-
-  Mutex state_spinlock;       /**< A spinlock for setting state and phase */
-
-
-  /* scheduler data */
-  rlnode sched_node;      /**< node to use when queueing in the scheduler list */
-
-  struct thread_control_block * prev;  /**< previous context */
-  struct thread_control_block * next;  /**< next context */
+    Mutex state_spinlock;       /**< A spinlock for setting state and phase */
 
 
-  /*Our edits*/
-  int priority;   /**<the TCB's current priority value*/
-  int quantums_passed; /**<The number of quantums passed after the last execution of the current trhead*/
-  Yield_state yield_state;
+    /* scheduler data */
+    rlnode sched_node;      /**< node to use when queueing in the scheduler list */
+
+    struct thread_control_block *prev;  /**< previous context */
+    struct thread_control_block *next;  /**< next context */
+
+
+    /*Our edits*/
+    int priority;   /**<the TCB's current priority value*/
+    int quantums_passed; /**<The number of quantums passed after the last execution of the current trhead*/
+    Yield_state yield_state;
+    rlnode ptcb_node;
 } TCB;
 
 
@@ -125,11 +119,11 @@ typedef struct thread_control_block
   Per-core info in memory (basically scheduler-related)
  */
 typedef struct core_control_block {
-  uint id;                    /**< The core id */
+    uint id;                    /**< The core id */
 
-  TCB* current_thread;        /**< Points to the thread currently owning the core */
-  TCB idle_thread;            /**< Used by the scheduler to handle the core's idle thread */
-  sig_atomic_t preemption;    /**< Marks preemption, used by the locking code */
+    TCB *current_thread;        /**< Points to the thread currently owning the core */
+    TCB idle_thread;            /**< Used by the scheduler to handle the core's idle thread */
+    sig_atomic_t preemption;    /**< Marks preemption, used by the locking code */
 
 } CCB;
 
@@ -139,10 +133,8 @@ typedef struct core_control_block {
 
 /** @brief The max quantums number to pass before increasing priority to too much waiting thread*/
 #define MAX_QUANTUMS_PASSED (80)
-
 /** @brief The priority table*/
 rlnode priority_table[MAX_PRIORITY];
-
 /** @brief the array of Core Control Blocks (CCB) for the kernel */
 extern CCB cctx[MAX_CORES];
 
@@ -164,7 +156,6 @@ extern CCB cctx[MAX_CORES];
 */
 #define CURPROC  (CURTHREAD->owner_pcb)
 
-
 /**
   @brief Create a new thread.
 
@@ -173,7 +164,7 @@ extern CCB cctx[MAX_CORES];
   Note that, the new thread is returned in the @c INIT state.
   The caller must use @c wakeup() to start it.
 */
-TCB* spawn_thread(PCB* pcb, void (*func)());
+TCB *spawn_thread(PCB *pcb, void (*func)(), rlnode ptcb_node);
 
 /**
   @brief Wakeup a blocked thread.
@@ -183,8 +174,7 @@ TCB* spawn_thread(PCB* pcb, void (*func)());
 
   @param tcb the thread to be made @c READY.
 */
-void wakeup(TCB* tcb);
-
+void wakeup(TCB *tcb);
 
 /**
   @brief Block the current thread.
@@ -206,7 +196,7 @@ void wakeup(TCB* tcb);
     @param newstate the new state for the thread
     @param mx the mutex to unlock.
    */
-void sleep_releasing(Thread_state newstate, Mutex* mx);
+void sleep_releasing(Thread_state newstate, Mutex *mx);
 
 /**
   @brief Give up the CPU.

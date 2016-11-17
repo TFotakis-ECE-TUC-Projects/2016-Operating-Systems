@@ -97,17 +97,11 @@ void release_PCB(PCB *pcb) {
   to execute the main thread of a process.
 */
 void start_main_thread() {
-    int exitval;
-    rlnode* tmp = rlist_pop_front(&CURPROC->PTCB_list);
-    Task call = tmp->ptcb->task;
-    int argl = tmp->ptcb->argl;
-    void *args = tmp->ptcb->args;
-    rlist_push_front(&CURPROC->PTCB_list, tmp);
-//    Task call = CURPROC->main_task;
-//    int argl = CURPROC->argl;
-//    void *args = CURPROC->args;
-    exitval = call(argl, args);
-    Exit(exitval);
+//    int exitval;
+//    PTCB* ptcb = (PTCB*) ThreadSelf();
+    PTCB *ptcb = CURTHREAD->ptcb_node.ptcb;
+    assert(ptcb != NULL);
+    Exit(ptcb->task(ptcb->argl, ptcb->args));
 }
 
 /*
@@ -135,9 +129,12 @@ Pid_t Exec(Task call, int argl, void *args) {
             if (newproc->FIDT[i]) { FCB_incref(newproc->FIDT[i]); }
         }
     }
+    newproc->threads_counter = 0;
     /* Set the main thread's function */
 
-    PTCB *tmp = malloc(sizeof(PTCB));
+    PTCB *tmp = (PTCB *) malloc(sizeof(PTCB));
+    tmp->condVar = COND_INIT;
+    tmp->isDetached = false;
     tmp->task = call;
     /* Copy the arguments to new storage, owned by the new process */
     tmp->argl = argl;
@@ -150,11 +147,12 @@ Pid_t Exec(Task call, int argl, void *args) {
       we do, because once we wakeup the new thread it may run! so we need to have finished
       the initialization of the PCB.
      */
+    rlnode *ptcb_node = rlnode_init(&tmp->node, tmp);
+    rlist_push_back(&newproc->PTCB_list, ptcb_node);
     if (call != NULL) {
-        tmp->thread = spawn_thread(newproc, start_main_thread);//-------------------------------------
+        tmp->thread = spawn_thread(newproc, start_main_thread, *ptcb_node);
         wakeup(tmp->thread);
     }
-    rlist_push_back(&newproc->PTCB_list, rlnode_init(&tmp->node, tmp));
     finish:
     Mutex_Unlock(&kernel_mutex);
     return get_pid(newproc);
@@ -239,20 +237,20 @@ void Exit(int exitval) {
     Mutex_Lock(&kernel_mutex);
     PCB *curproc = CURPROC;  /* cache for efficiency */
     /* Do all the other cleanup we want here, close files etc. */
-//    if (curproc->args) {
-//        free(curproc->args);
-//        curproc->args = NULL;
+    /*Our edits*/
+
+//    while (!is_rlist_empty(&curproc->PTCB_list)) {
+//        rlnode *tmp = rlist_pop_front(&curproc->PTCB_list);
+//        if (tmp->ptcb->args) {
+//            free(tmp->ptcb->args);
+//            tmp->ptcb->args = NULL;
+//        }
 //    }
+    if (curproc->threads_counter != 0) {
+        Cond_Wait(&kernel_mutex, &CURTHREAD->ptcb_node.ptcb->condVar);
 
-      while(!is_rlist_empty(&curproc->PTCB_list)){
-          rlnode* tmp = rlist_pop_front(&curproc->PTCB_list);
-          if(tmp->ptcb->args){
-              free(tmp->ptcb->args);
-              tmp->ptcb->args = NULL;
-          }
-//          rlist_push_back(&curproc->PTCB_list,tmp);
-      }
-
+//        sleep_releasing(STOPPED, &kernel_mutex);// CURTHREAD->ptcb_node.ptcb->condVar
+    }
     /* Clean up FIDT */
     for (int i = 0; i < MAX_FILEID; i++) {
         if (curproc->FIDT[i] != NULL) {
@@ -279,12 +277,11 @@ void Exit(int exitval) {
         rlist_push_front(&curproc->parent->exited_list, &curproc->exited_node);
         Cond_Broadcast(&curproc->parent->child_exit);
     }
-    /* Disconnect my main_thread */
-//    curproc->main_thread = NULL;
     /* Now, mark the process as exited. */
     curproc->pstate = ZOMBIE;
     curproc->exitval = exitval;
     /* Bye-bye cruel world */
+    MSG("Exited!!!");
     sleep_releasing(EXITED, &kernel_mutex);
 }
 

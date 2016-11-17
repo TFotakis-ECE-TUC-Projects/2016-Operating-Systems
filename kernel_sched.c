@@ -1,3 +1,4 @@
+
 #include <assert.h>
 #include <sys/mman.h>
 #include "tinyos.h"
@@ -126,7 +127,7 @@ static void thread_start() {
 */
 void sched_queue_add(TCB *tcb);
 
-TCB *spawn_thread(PCB *pcb, void (*func)()) {
+TCB *spawn_thread(PCB *pcb, void (*func)(), rlnode ptcb_node) {
     /* The allocated thread size must be a multiple of page size */
     TCB *tcb = (TCB *) allocate_thread(THREAD_SIZE);
     /* Set the owner */
@@ -140,6 +141,7 @@ TCB *spawn_thread(PCB *pcb, void (*func)()) {
     tcb->priority = MAX_PRIORITY / 2;
     tcb->quantums_passed = 0;
     tcb->yield_state = DEFAULT;
+    tcb->ptcb_node = ptcb_node;
     rlnode_init(&tcb->sched_node, tcb);  /* Intrusive list node */
     /* Prepare the stack */
     stack_t stack = {
@@ -472,3 +474,5 @@ void run_scheduler() {
     cpu_interrupt_handler(ALARM, NULL);
     cpu_interrupt_handler(ICI, NULL);
 }
+
+
