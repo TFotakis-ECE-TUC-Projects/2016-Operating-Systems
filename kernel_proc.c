@@ -131,7 +131,7 @@ Pid_t Exec(Task call, int argl, void *args) {
     }
     newproc->threads_counter = 0;
     /* Set the main thread's function */
-
+    newproc->condVar = COND_INIT;
     PTCB *tmp = (PTCB *) malloc(sizeof(PTCB));
     tmp->condVar = COND_INIT;
     tmp->isDetached = 0;
@@ -248,7 +248,8 @@ void Exit(int exitval) {
 //    }
     if (curproc->threads_counter != 0) {
         PTCB *currentPTCB = (PTCB*) ThreadSelf();
-        Cond_Wait(&kernel_mutex, &currentPTCB->condVar);
+        Cond_Wait(&kernel_mutex, &CURPROC->condVar);
+//        Cond_Wait(&kernel_mutex, &currentPTCB->condVar);
 //        Mutex_Lock(&kernel_mutex);
 //        sleep_releasing(STOPPED, &kernel_mutex);// CURTHREAD->ptcb_node.ptcb->condVar
     }

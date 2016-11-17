@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include "tinyos.h"
 #include "kernel_sched.h"
 #include "kernel_proc.h"
@@ -23,6 +22,7 @@ Tid_t CreateThread(Task task, int argl, void *args) {
     CURPROC->threads_counter++;
     assert(CURPROC == CURTHREAD->owner_pcb);
     PTCB *ptcb = (PTCB *) malloc(sizeof(PTCB));
+    ptcb->condVar = COND_INIT;
     ptcb->isDetached = 0;
     ptcb->task = task;
     /* Copy the arguments to new storage, owned by the new process */
@@ -77,10 +77,20 @@ Tid_t ThreadSelf() {
 int ThreadJoin(Tid_t tid, int *exitval) {
     MSG("Join\n");
     Mutex_Lock(&kernel_mutex);
-    PTCB *ptcb = FindPTCB(tid);//------------prosoxi epane3etasi-------------------
+    PTCB *ptcb = FindPTCB(tid);
     int returnVal = 0;
+
     if (ptcb == NULL || tid == (Tid_t) CURTHREAD || ptcb->isDetached) { returnVal = -1; }
     else {
+        while(ptcb->thread->state!=EXITED && !ptcb->isDetached){
+            Cond_Wait(&kernel_mutex,&CURPROC->condVar);
+//            Cond_Wait(&kernel_mutex,&((PTCB*)ThreadSelf())->condVar);
+        }
+        if(ptcb->isDetached){
+            returnVal = -1;
+        }else{
+            *exitval = ptcb->exitval;
+        }
     }
     Mutex_Unlock(&kernel_mutex);
     return returnVal;
@@ -102,8 +112,11 @@ void ThreadExit(int exitval) {
     CURPROC->threads_counter--;
     if (CURPROC->threads_counter == 0) {
 //        PTCB *currentPTCB = ThreadSelf();
-        Cond_Signal(&CURPROC->PTCB_list.next->ptcb->condVar);
+        Cond_Signal(&CURPROC->condVar);
+//        Cond_Signal(&CURPROC->PTCB_list.next->ptcb->condVar);
     }
+    Cond_Broadcast(&CURPROC->condVar);
+//    Cond_Broadcast(&CURPROC->PTCB_list.ptcb->condVar);
     sleep_releasing(EXITED, &kernel_mutex);
 }
 

@@ -56,6 +56,7 @@ typedef struct process_control_block {
 
     /*Our edits*/
     rlnode PTCB_list;     /**< The threads list */
+    CondVar condVar;
     int threads_counter;
 } PCB;
 typedef struct process_thread_control_block {
