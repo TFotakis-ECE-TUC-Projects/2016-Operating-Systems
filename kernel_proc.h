@@ -25,9 +25,9 @@
   using it), or ZOMBIE (a zombie process is using it).
   */
 typedef enum pid_state_e {
-    FREE,   /**< The PID is free and available */
-    ALIVE,  /**< The PID is given to a process */
-    ZOMBIE  /**< The PID is held by a zombie */
+	FREE,   /**< The PID is free and available */
+	ALIVE,  /**< The PID is given to a process */
+	ZOMBIE  /**< The PID is held by a zombie */
 } pid_state;
 /**
   @brief Process Control Block.
@@ -35,41 +35,30 @@ typedef enum pid_state_e {
   This structure holds all information pertaining to a process.
  */
 typedef struct process_control_block {
-    pid_state pstate;      /**< The pid state for this PCB */
-
-    PCB *parent;            /**< Parent's pcb. */
-    int exitval;            /**< The exit value */
-
-//    TCB *main_thread;       /**< The main thread */
-//    Task main_task;         /**< The main thread's function */
-//    int argl;               /**< The main thread's argument length */
-//    void *args;             /**< The main thread's argument string */
-
-    rlnode children_list;   /**< List of children */
-    rlnode exited_list;     /**< List of exited children */
-
-    rlnode children_node;   /**< Intrusive node for @c children_list */
-    rlnode exited_node;     /**< Intrusive node for @c exited_list */
-    CondVar child_exit;     /**< Condition variable for @c WaitChild */
-
-    FCB *FIDT[MAX_FILEID];  /**< The fileid table of the process */
-
-    /*Our edits*/
-    rlnode PTCB_list;     /**< The threads list */
-    CondVar condVar;
-    int threads_counter;
+	pid_state pstate;      /**< The pid state for this PCB */
+	PCB *parent;            /**< Parent's pcb. */
+	int exitval;            /**< The exit value */
+	rlnode children_list;   /**< List of children */
+	rlnode exited_list;     /**< List of exited children */
+	rlnode children_node;   /**< Intrusive node for @c children_list */
+	rlnode exited_node;     /**< Intrusive node for @c exited_list */
+	CondVar child_exit;     /**< Condition variable for @c WaitChild */
+	FCB *FIDT[MAX_FILEID];  /**< The fileid table of the process */
+	/*Our edits*/
+	rlnode PTCB_list;     /**< The threads list */
+	CondVar condVar;
+	int threads_counter;
 } PCB;
 typedef struct process_thread_control_block {
-    int exitval;            /**< The exit value */
-    TCB *thread;            /**< The thread */
-    Task task;              /**< The thread's function */
-    int argl;               /**< The thread's argument length */
-    void *args;             /**< The thread's argument string */
-    int isDetached;
-    rlnode node;
-    CondVar condVar;        /**< Condition variable for @c WaitChild */
+	int exitval;            /**< The exit value */
+	TCB *thread;            /**< The thread */
+	Task task;              /**< The thread's function */
+	int argl;               /**< The thread's argument length */
+	void *args;             /**< The thread's argument string */
+	int isDetached;
+	rlnode node;
+	int isExited;
 } PTCB;
-
 /**
   @brief Initialize the process table.
 
@@ -77,9 +66,7 @@ typedef struct process_thread_control_block {
   any data structures related to process creation.
 */
 void initialize_processes();
-
 void start_main_thread();
-
 /**
   @brief Get the PCB for a PID.
 
@@ -91,7 +78,6 @@ void start_main_thread();
   @returns A pointer to the PCB of the process, or NULL.
 */
 PCB *get_pcb(Pid_t pid);
-
 /**
   @brief Get the PID of a PCB.
 
