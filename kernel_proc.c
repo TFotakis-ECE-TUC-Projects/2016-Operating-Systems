@@ -216,20 +216,21 @@ void Exit(int exitval) {
 	}
 	/* Now, we exit */
 	Mutex_Lock(&kernel_mutex);
-	PCB *curproc = CURPROC;  /* cache for efficiency */
 	/* Do all the other cleanup we want here, close files etc. */
 	/*Our edits*/
-
-//    while (!is_rlist_empty(&curproc->PTCB_list)) {
-//        rlnode *tmp = rlist_pop_front(&curproc->PTCB_list);
-//        if (tmp->ptcb->args) {
-//            free(tmp->ptcb->args);
-//            tmp->ptcb->args = NULL;
-//        }
-//    }
+	PCB *curproc = CURPROC;  /* cache for efficiency */
 	if (curproc->threads_counter != 0) {
 		Cond_Wait(&kernel_mutex, &CURPROC->condVar);
 	}
+//	MSG("Exit\n");
+	curproc->exitval = exitval;
+	while (!is_rlist_empty(&curproc->PTCB_list)) {
+	    rlnode *tmp = rlist_pop_front(&curproc->PTCB_list);
+	    if (tmp->ptcb->args) {
+//	        free(tmp->ptcb->args);
+	        tmp->ptcb->args = NULL;
+        }
+    }
 	/* Clean up FIDT */
 	for (int i = 0; i < MAX_FILEID; i++) {
 		if (curproc->FIDT[i] != NULL) {
@@ -260,7 +261,6 @@ void Exit(int exitval) {
 	curproc->pstate = ZOMBIE;
 	curproc->exitval = exitval;
 	/* Bye-bye cruel world */
-	MSG("Exit\n");
 	sleep_releasing(EXITED, &kernel_mutex);
 }
 Fid_t OpenInfo() {

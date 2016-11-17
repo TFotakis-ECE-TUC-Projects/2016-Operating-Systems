@@ -27,6 +27,8 @@ Tid_t CreateThread(Task task, int argl, void *args) {
 	ptcb->argl = argl;
 	if (args != NULL) {
 		ptcb->args = args;
+//		ptcb->args = malloc(sizeof(args));
+//		memcpy(ptcb->args, args, sizeof(args));
 	} else { ptcb->args = NULL; }
 	/*
 	  Create and wake up the thread for the main function. This must be the last thing
@@ -70,7 +72,7 @@ Tid_t ThreadSelf() {
   @brief Join the given thread.
   */
 int ThreadJoin(Tid_t tid, int *exitval) {
-	MSG("Join\n");
+//	MSG("Join\n");
 	Mutex_Lock(&kernel_mutex);
 	PTCB *ptcb = FindPTCB(tid);
 	int returnVal = 0;
@@ -106,7 +108,7 @@ int ThreadDetach(Tid_t tid) {
   */
 void ThreadExit(int exitval) {
 	Mutex_Lock(&kernel_mutex);
-	MSG("ThreadExit\n");
+//	MSG("ThreadExit\n";
 	CURPROC->threads_counter--;
 	Mutex_Unlock(&kernel_mutex);
 	PTCB *ptcb = ((PTCB *) ThreadSelf());
@@ -117,6 +119,7 @@ void ThreadExit(int exitval) {
 	} else {
 		Cond_Broadcast(&CURPROC->condVar);
 	}
+	ptcb->exitval=exitval;
 	sleep_releasing(EXITED, &kernel_mutex);
 }
 /**
