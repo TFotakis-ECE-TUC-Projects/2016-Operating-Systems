@@ -91,6 +91,7 @@ typedef struct thread_control_block {
 	int priority;   /**<the TCB's current priority value*/
 	int quantums_passed; /**<The number of quantums passed after the last execution of the current trhead*/
 	Yield_state yield_state;
+	int interruptFlag;
 } TCB;
 
 /** Thread stack size */

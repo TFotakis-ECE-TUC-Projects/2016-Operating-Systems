@@ -134,6 +134,7 @@ TCB *spawn_thread(PCB *pcb, void (*func)()) {
 	tcb->priority = MAX_PRIORITY / 2;
 	tcb->quantums_passed = 0;
 	tcb->yield_state = DEFAULT;
+	tcb->interruptFlag=0;
 	rlnode_init(&tcb->sched_node, tcb);  /* Intrusive list node */
 	/* Prepare the stack */
 	stack_t stack = {
@@ -256,8 +257,9 @@ void sleep_releasing(Thread_state state, Mutex *mx) {
 	int preempt = preempt_off;
 	Mutex_Lock(&tcb->state_spinlock);
 	/* mark the process as stopped */
-
-	tcb->state = state;
+	if(!tcb->interruptFlag){
+		tcb->state = state;
+	}
 	/* Release mx */
 	if (mx != NULL) { Mutex_Unlock(mx); }
 	Mutex_Unlock(&tcb->state_spinlock);

@@ -104,13 +104,17 @@ int ThreadJoin(Tid_t tid, int *exitval) {
   @brief Detach the given thread.
   */
 int ThreadDetach(Tid_t tid) {
+	Mutex_Lock(&kernel_mutex);
 	PTCB *ptcb = FindPTCB(tid);
+	int returnVal;
 	if (ptcb == NULL || ptcb->isExited) {
-		return -1;
+		returnVal = -1;
 	} else {
 		ptcb->isDetached = 1;
-		return 0;
+		returnVal = 0;
 	}
+	Mutex_Unlock(&kernel_mutex);
+	return returnVal;
 }
 /**
   @brief Terminate the current thread.
@@ -132,19 +136,34 @@ void ThreadExit(int exitval) {
 
   */
 int ThreadInterrupt(Tid_t tid) {
-
-	return -1;
+	Mutex_Lock(&kernel_mutex);
+	TCB *tcb = (TCB*)tid;
+	tcb->interruptFlag=1;
+	if(tcb->state==STOPPED){
+		Mutex_Unlock(&kernel_mutex);
+		wakeup(tcb);
+		return 0;
+	}else{
+		Mutex_Unlock(&kernel_mutex);
+		return -1;
+	}
 }
 /**
   @brief Return the interrupt flag of the
   current thread.
   */
 int ThreadIsInterrupted() {
-	return 0;
+	Mutex_Lock(&kernel_mutex);
+	int returnVal = CURTHREAD->interruptFlag;
+	Mutex_Unlock(&kernel_mutex);
+	return returnVal;
 }
 /**
   @brief Clear the interrupt flag of the
   current thread.
   */
 void ThreadClearInterrupt() {
+	Mutex_Lock(&kernel_mutex);
+	CURTHREAD->interruptFlag=0;
+	Mutex_Unlock(&kernel_mutex);
 }
