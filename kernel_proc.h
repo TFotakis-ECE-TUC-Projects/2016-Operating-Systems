@@ -50,6 +50,7 @@ typedef struct process_control_block {
 	int threads_counter;
 } PCB;
 typedef struct process_thread_control_block {
+	uint refcount;            /**< @brief Reference counter. */
 	int exitval;            /**< The exit value */
 	TCB *thread;            /**< The thread */
 	Task task;              /**< The thread's function */
@@ -89,7 +90,4 @@ PCB *get_pcb(Pid_t pid);
   @returns the PID of the process, or NOPROC.
 */
 Pid_t get_pid(PCB *pcb);
-
-/** @} */
-
 #endif

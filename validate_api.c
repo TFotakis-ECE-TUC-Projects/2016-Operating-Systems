@@ -646,9 +646,7 @@ BOOT_TEST(test_create_join_thread,
 	ASSERT(flag == 1);
 	return 0;
 }
-BOOT_TEST(test_exit_many_threads,
-          "Test that a process thread calling Exit will clean up correctly."
-) {
+BOOT_TEST(test_exit_many_threads, "Test that a process thread calling Exit will clean up correctly.") {
 	int task(int argl, void *args) {
 		fibo(45);
 		return 2;

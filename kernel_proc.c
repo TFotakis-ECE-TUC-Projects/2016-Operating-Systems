@@ -84,7 +84,7 @@ void release_PCB(PCB *pcb) {
   to execute the main thread of a process.
 */
 void start_main_thread() {
-	PTCB *ptcb = (PTCB *) ThreadSelf();
+	PTCB *ptcb = (PTCB *) ThreadSelf_withMutex();
 	int argl = ptcb->argl;
 	void *args = ptcb->args;
 	Task call = ptcb->task;
@@ -121,7 +121,8 @@ Pid_t Exec(Task call, int argl, void *args) {
 	/* Set the main thread's function */
 	newproc->condVar = COND_INIT;
 	PTCB *ptcb = (PTCB *) malloc(sizeof(PTCB));
-	ptcb->isExited=0;
+	ptcb->refcount = 0;
+	ptcb->isExited = 0;
 	ptcb->isDetached = 0;
 	ptcb->task = call;
 	/* Copy the arguments to new storage, owned by the new process */
@@ -219,18 +220,14 @@ void Exit(int exitval) {
 	/* Do all the other cleanup we want here, close files etc. */
 	/*Our edits*/
 	PCB *curproc = CURPROC;  /* cache for efficiency */
-	if (curproc->threads_counter != 0) {
+	while (curproc->threads_counter != 0) {
 		Cond_Wait(&kernel_mutex, &CURPROC->condVar);
 	}
-//	MSG("Exit\n");
 	curproc->exitval = exitval;
 	while (!is_rlist_empty(&curproc->PTCB_list)) {
-	    rlnode *tmp = rlist_pop_front(&curproc->PTCB_list);
-	    if (tmp->ptcb->args) {
-//	        free(tmp->ptcb->args);
-	        tmp->ptcb->args = NULL;
-        }
-    }
+		rlnode *tmp = rlist_pop_front(&curproc->PTCB_list);
+		free(tmp->ptcb);
+	}
 	/* Clean up FIDT */
 	for (int i = 0; i < MAX_FILEID; i++) {
 		if (curproc->FIDT[i] != NULL) {

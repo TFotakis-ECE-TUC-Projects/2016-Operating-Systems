@@ -2,9 +2,8 @@
 #include "kernel_sched.h"
 #include "kernel_proc.h"
 #include "kernel_cc.h"
-
 void start_thread() {
-	PTCB *ptcb = (PTCB *) ThreadSelf();
+	PTCB *ptcb = (PTCB *) ThreadSelf_withMutex();
 	int argl = ptcb->argl;
 	void *args = ptcb->args;
 	Task call = ptcb->task;
@@ -20,6 +19,7 @@ Tid_t CreateThread(Task task, int argl, void *args) {
 	CURPROC->threads_counter++;
 	assert(CURPROC == CURTHREAD->owner_pcb);
 	PTCB *ptcb = (PTCB *) malloc(sizeof(PTCB));
+	ptcb->refcount = 0;
 	ptcb->isExited = 0;
 	ptcb->isDetached = 0;
 	ptcb->task = task;
@@ -63,29 +63,38 @@ PTCB *FindPTCB(Tid_t tid) {
   @brief Return the Tid of the current thread.
  */
 Tid_t ThreadSelf() {
-	Mutex_Lock(&kernel_mutex);
 	PTCB *ptcb = FindPTCB((Tid_t) CURTHREAD);
-	Mutex_Unlock(&kernel_mutex);
 	return (Tid_t) ptcb;
+}
+Tid_t ThreadSelf_withMutex() {
+	Mutex_Lock(&kernel_mutex);
+	Tid_t tid = ThreadSelf();
+	Mutex_Unlock(&kernel_mutex);
+	return tid;
 }
 /**
   @brief Join the given thread.
   */
 int ThreadJoin(Tid_t tid, int *exitval) {
-//	MSG("Join\n");
 	Mutex_Lock(&kernel_mutex);
 	PTCB *ptcb = FindPTCB(tid);
 	int returnVal = 0;
 	if (ptcb == NULL || tid == (Tid_t) CURTHREAD || ptcb->isDetached) { returnVal = -1; }
 	else {
+		ptcb->refcount++;
 		while (!ptcb->isExited && !ptcb->isDetached) {
 			Cond_Wait(&kernel_mutex, &CURPROC->condVar);
 		}
 		if (ptcb->isDetached) {
 			returnVal = -1;
 		} else {
-			if (exitval)
+			if (exitval) {
 				*exitval = ptcb->exitval;
+			}
+			if (ptcb->refcount == 1) {
+				rlist_remove(&ptcb->node);
+				free(ptcb);
+			}
 		}
 	}
 	Mutex_Unlock(&kernel_mutex);
@@ -108,18 +117,11 @@ int ThreadDetach(Tid_t tid) {
   */
 void ThreadExit(int exitval) {
 	Mutex_Lock(&kernel_mutex);
-//	MSG("ThreadExit\n";
 	CURPROC->threads_counter--;
-	Mutex_Unlock(&kernel_mutex);
 	PTCB *ptcb = ((PTCB *) ThreadSelf());
-	Mutex_Lock(&kernel_mutex);
 	ptcb->isExited = 1;
-	if (CURPROC->threads_counter == 0) {
-		Cond_Signal(&CURPROC->condVar);
-	} else {
-		Cond_Broadcast(&CURPROC->condVar);
-	}
-	ptcb->exitval=exitval;
+	ptcb->exitval = exitval;
+	Cond_Broadcast(&CURPROC->condVar);
 	sleep_releasing(EXITED, &kernel_mutex);
 }
 /**
@@ -130,6 +132,7 @@ void ThreadExit(int exitval) {
 
   */
 int ThreadInterrupt(Tid_t tid) {
+
 	return -1;
 }
 /**

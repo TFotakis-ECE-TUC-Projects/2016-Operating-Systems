@@ -274,6 +274,7 @@ Tid_t CreateThread(Task task, int argl, void *args);
   @brief Return the Tid of the current thread.
  */
 Tid_t ThreadSelf();
+Tid_t  ThreadSelf_withMutex();
 /**
   @brief Join the given thread.
 

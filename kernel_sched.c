@@ -188,10 +188,7 @@ CCB cctx[MAX_CORES];
   head and tail of this list are stored in  SCHED.
 */
 
-
-//rlnode SCHED;                         /* The scheduler queue */
 Mutex sched_spinlock = MUTEX_INIT;    /* spinlock for scheduler queue */
-
 
 /* Interrupt handler for ALARM */
 void yield_handler() {
@@ -259,6 +256,7 @@ void sleep_releasing(Thread_state state, Mutex *mx) {
 	int preempt = preempt_off;
 	Mutex_Lock(&tcb->state_spinlock);
 	/* mark the process as stopped */
+
 	tcb->state = state;
 	/* Release mx */
 	if (mx != NULL) { Mutex_Unlock(mx); }

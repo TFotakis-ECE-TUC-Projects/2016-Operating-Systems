@@ -1,19 +1,13 @@
-
 #ifndef _UNIT_TESTING_H
 #define _UNIT_TESTING_H
-
-
 #include "bios.h"
 #include "tinyos.h"
-
-
 /**
 	@file unit_testing.h
  	@brief A library for coding and running unit tests.
 
 	
 */
-
 
 /**
 	@defgroup Testing  Unit Testing Library
@@ -200,38 +194,27 @@
 
  */
 
-
 /** @brief Maximum number of tests on the command line. */
 #define MAX_TESTS 1024
-
 /** @brief Global arguments for test execution */
-extern struct program_arguments
-{
-
+extern struct program_arguments {
 	/** @brief Flag that we just print the available tests. */
 	int show_tests;
-
 	/** @brief Flag verbose */
 	int verbose;
-
 	/** @brief Flag use_color */
 	int use_color;
-
 	/** @brief Flag to signal fork */
 	int fork;
-
-	int ncore_list;		/**< Size of `core_list` */
+	int ncore_list;        /**< Size of `core_list` */
 	/** @brief List with number of cores */
 	int core_list[MAX_CORES];
-
-	int nterm_list;		/**< Size of `term_list` */
+	int nterm_list;        /**< Size of `term_list` */
 	/** @brief List with number of terminals */
-	int term_list[MAX_TERMINALS+1];
-
-	int ntests;			/**< Size of `tests` */
+	int term_list[MAX_TERMINALS + 1];
+	int ntests;            /**< Size of `tests` */
 	/** @brief Tests to run */
-	const struct Test* tests[MAX_TESTS];	
-
+	const struct Test *tests[MAX_TESTS];
 } ARGS; /**< The object used to store the program arguments */
 
 
@@ -240,11 +223,9 @@ extern struct program_arguments
 
 	The messages will be indented to align to the test they belong.
 */
-void MSG(const char* format, ...) __attribute__ ((format (printf, 1, 2)));
-
-
+void MSG(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 /** @brief Flag failure during a test */
-extern int FLAG_FAILURE; 
+extern int FLAG_FAILURE;
 
 /** @brief Like ASSERT but with a custom message. 
 	@see ASSERT
@@ -266,9 +247,6 @@ extern int FLAG_FAILURE;
 #define ASSERT(expr)  \
  ASSERT_MSG(expr, "%s(%d): ASSERT failed: %s \n",__FILE__, __LINE__, #expr)
 
-
-
-
 /* 
 	Execution utilities
  */
@@ -282,45 +260,40 @@ extern int FLAG_FAILURE;
 	Subsequent calls to expect add more patterns, that are 
 	expected to appear sequentially.
  */
-void expect(uint term, const char* pattern);
-
-/** @brief Ask to receive some bytes from the keyboard. 
+void expect(uint term, const char *pattern);
+/** @brief Ask to receive some bytes from the keyboard.
 
 	This function registers a pattern to be sent from the
 	terminal's keyboard. 
 */
-void sendme(uint term, const char* pattern);
-
+void sendme(uint term, const char *pattern);
 
 /** @brief Fill in the bytes of a variable with a weird value:  10101010 or 0xAA 
 */
 #define FUDGE(var)  memset(&(var), 170, sizeof(var))
-
-
 /** @internal
 	Test organization
  */
-typedef enum { NO_FUNC, BARE_FUNC, BOOT_FUNC, SUITE_FUNC } Test_type;
-
+typedef enum {
+	NO_FUNC, BARE_FUNC, BOOT_FUNC, SUITE_FUNC
+} Test_type;
 /** @brief Test descriptor.
 
 	This object describes a test.
  */
-typedef struct Test
-{
-	Test_type type;	    				/**< Bare, boot or suite */
-	const char* name;   				/**< Test name */
+typedef struct Test {
+	Test_type type;                        /**< Bare, boot or suite */
+	const char *name;                /**< Test name */
 	union {
 		void (*bare)(void);
 		Task boot;
-		const struct Test ** suite;
-	};									/**< Test function, or list of tests */
-	const char* description;			/**< Human-readable, for printing */
-	unsigned int timeout;				/**< time to kill test (see DEFAULT_TIMEOUT) */
-	unsigned int minimum_terminals;		/**< Minimum no. of terminals required. Default: 0 */
-	unsigned int minimum_cores;			/**< Minimum no. of cores required. Default: 1 */
+		const struct Test **suite;
+	};                                    /**< Test function, or list of tests */
+	const char *description;            /**< Human-readable, for printing */
+	unsigned int timeout;                /**< time to kill test (see DEFAULT_TIMEOUT) */
+	unsigned int minimum_terminals;        /**< Minimum no. of terminals required. Default: 0 */
+	unsigned int minimum_cores;            /**< Minimum no. of cores required. Default: 1 */
 } Test;
-
 
 /** @brief Default time per test. */
 #define DEFAULT_TIMEOUT 10
@@ -346,17 +319,12 @@ static int __test_ ## tname (int argl, void* args)
 #define TEST_SUITE(tname, descr, ...) \
 extern const Test* __suite_##tname[]; \
 const Test tname  = { SUITE_FUNC, #tname, .suite = __suite_##tname, (descr), DEFAULT_TIMEOUT, 0, 1, __VA_ARGS__ }; \
-const Test* __suite_##tname[]  = 
-
-
-
+const Test* __suite_##tname[]  =
 /** @brief The main routine to run a test.
 
 	This can be called from the main program or even from within tests.
   */
-int run_test(const Test* test);
-
-
+int run_test(const Test *test);
 /** @brief Called from the main program to register a test (usually a suite).
 
 	Typically, this will be called only once, having organized all tests into
@@ -364,9 +332,8 @@ int run_test(const Test* test);
 
 	@see run_program
 */
-int register_test(const Test* test);
-
-/** @brief Called from the main program to parse arguments and run tests. 
+int register_test(const Test *test);
+/** @brief Called from the main program to parse arguments and run tests.
 
 	The typical test program's main routine looks something like this:
 	@code
@@ -377,8 +344,5 @@ int register_test(const Test* test);
 	}
 	@endcode
 */
-int run_program(int argc, char**argv, const Test* default_test);
-
-/** @} */
-
+int run_program(int argc, char **argv, const Test *default_test);
 #endif
