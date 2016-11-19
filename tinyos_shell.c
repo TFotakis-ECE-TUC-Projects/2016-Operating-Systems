@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -7,78 +6,72 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
-
 #include "tinyoslib.h"
 #include "symposium.h"
 #include "bios.h"
 #include "util.h"
 
-int Shell(size_t, const char**);
-int RunTerm(size_t, const char**);
-int ListPrograms(size_t, const char**);
-int Fibonacci(size_t, const char**);
-int Repeat(size_t, const char**);
-int Hanoi(size_t, const char**);
-int HelpMessage(size_t, const char**);
-int SystemInfo(size_t, const char**);
-int Capitalize(size_t, const char**);
-int LowerCase(size_t, const char**);
-int LineEnum(size_t, const char**);
-int More(size_t, const char**);
-int WordCount(size_t, const char**);
-int Symposium_proc(size_t, const char**);
-int Symposium_thr(size_t, const char**);
-int RemoteServer(size_t, const char**);
-int RemoteClient(size_t, const char**);
-
-
-struct { const char * cmdname; Program prog; uint nargs; const char* help; }
-COMMANDS[]  =
-{
-	{"help", HelpMessage, 0, "A help message."},
-	{"ls", ListPrograms, 0, "List available programs programs."},
-	{"sysinfo", SystemInfo, 0, "Print some basic info about the current system."},
-	{"runterm", RunTerm, 2, "runterm <term> <prog>  <args...> : execute '<prog> <args...>' on terminal <term>."},
-	{"sh", Shell, 0, "Run a shell."},
-	{"repeat", Repeat, 2, "repeat <n> <prog> <args...>: execute '<prog> <args...>' <n> times."},
-	{"fibo", Fibonacci, 1, "Compute a fibonacci number."},
-	{"cap", Capitalize, 0, "Copy stdin to stdout, capitalizing all letters"},
-	{"lcase", LowerCase, 0, "Copy stdin to stdout, lower-casing all letters"},
-	{"wc", WordCount, 0, "Count and print lines, words and chars of stdin"},
-	{"lenum", LineEnum, 0, "Copy stdin to stdout, adding line numbers"},
-	{"more", More, 0, "more [<n>] (default: <n>=20). Read the input <n> lines at a time."},
-	{"symposium", Symposium_proc, 2, "Dining Philosophers(processes): symposium  <philosophers> <bites>"},
-	{"symp_thr", Symposium_thr, 2, "Dining Philosophers(threads): symp_thr  <philosophers> <bites>"},
-	{"hanoi", Hanoi, 1, "The towers of Hanoi."},
-	{"rserver", RemoteServer, 0, "A server for remote execution."},
-	{"rcli", RemoteClient, 1, "Remote client: rcli <cmd> [<args...>]."},
-	{NULL, NULL, 0, NULL}
-};
-
+int Shell(size_t, const char **);
+int RunTerm(size_t, const char **);
+int ListPrograms(size_t, const char **);
+int Fibonacci(size_t, const char **);
+int Repeat(size_t, const char **);
+int Hanoi(size_t, const char **);
+int HelpMessage(size_t, const char **);
+int SystemInfo(size_t, const char **);
+int Capitalize(size_t, const char **);
+int LowerCase(size_t, const char **);
+int LineEnum(size_t, const char **);
+int More(size_t, const char **);
+int WordCount(size_t, const char **);
+int Symposium_proc(size_t, const char **);
+int Symposium_thr(size_t, const char **);
+int RemoteServer(size_t, const char **);
+int RemoteClient(size_t, const char **);
+struct {
+	const char *cmdname;
+	Program prog;
+	uint nargs;
+	const char *help;
+}
+		COMMANDS[] =
+		{
+				{"help",      HelpMessage,    0, "A help message."},
+				{"ls",        ListPrograms,   0, "List available programs programs."},
+				{"sysinfo",   SystemInfo,     0, "Print some basic info about the current system."},
+				{"runterm",   RunTerm,        2, "runterm <term> <prog>  <args...> : execute '<prog> <args...>' on terminal <term>."},
+				{"sh",        Shell,          0, "Run a shell."},
+				{"repeat",    Repeat,         2, "repeat <n> <prog> <args...>: execute '<prog> <args...>' <n> times."},
+				{"fibo",      Fibonacci,      1, "Compute a fibonacci number."},
+				{"cap",       Capitalize,     0, "Copy stdin to stdout, capitalizing all letters"},
+				{"lcase",     LowerCase,      0, "Copy stdin to stdout, lower-casing all letters"},
+				{"wc",        WordCount,      0, "Count and print lines, words and chars of stdin"},
+				{"lenum",     LineEnum,       0, "Copy stdin to stdout, adding line numbers"},
+				{"more",      More,           0, "more [<n>] (default: <n>=20). Read the input <n> lines at a time."},
+				{"symposium", Symposium_proc, 2, "Dining Philosophers(processes): symposium  <philosophers> <bites>"},
+				{"symp_thr",  Symposium_thr,  2, "Dining Philosophers(threads): symp_thr  <philosophers> <bites>"},
+				{"hanoi",     Hanoi,          1, "The towers of Hanoi."},
+				{"rserver",   RemoteServer,   0, "A server for remote execution."},
+				{"rcli",      RemoteClient,   1, "Remote client: rcli <cmd> [<args...>]."},
+				{NULL, NULL,                  0, NULL}
+		};
 int programs() {
 	int c = 0;
 	while (COMMANDS[c++].cmdname);
 	return c;
 }
-
 #define checkargs(argno) if(argc <= (argno)) {\
   printf("Insufficient arguments. %d expected, %zd given.\n", (argno), argc-1);\
   return -1; }\
 
 #define getint(n)  atoi(argv[n])
-
-static inline int getprog_byname(const char* name) {
-	for (int c = 0; COMMANDS[c].cmdname ; c++)
-		if (strcmp(COMMANDS[c].cmdname, name) == 0)
-		{ return c; }
+static inline int getprog_byname(const char *name) {
+	for (int c = 0; COMMANDS[c].cmdname; c++)
+		if (strcmp(COMMANDS[c].cmdname, name) == 0) { return c; }
 	return -1;
 }
-
 #define getprog(n) getprog_byname(argv[n])
-
-
-static void __symp_argproc(size_t argc, const char** argv, symposium_t* symp)
-{
+static void __symp_argproc(size_t argc, const char **argv, symposium_t *symp) {
 	symp->N = getint(1);
 	symp->bites = getint(2);
 	int dBASE = 0;
@@ -87,32 +80,24 @@ static void __symp_argproc(size_t argc, const char** argv, symposium_t* symp)
 	if (argc >= 5) { dGAP = getint(4); }
 	adjust_symposium(symp, dBASE, dGAP);
 }
-
-
-int Symposium_thr(size_t argc, const char** argv)
-{
+int Symposium_thr(size_t argc, const char **argv) {
 	checkargs(2);
 	symposium_t symp;
 	__symp_argproc(argc, argv, &symp);
 	return SymposiumOfThreads(sizeof(symp), &symp);
 }
-
-int Symposium_proc(size_t argc, const char** argv)
-{
+int Symposium_proc(size_t argc, const char **argv) {
 	checkargs(2);
 	symposium_t symp;
 	__symp_argproc(argc, argv, &symp);
 	return SymposiumOfProcesses(sizeof(symp), &symp);
 }
-
-
-int Repeat(size_t argc, const char** argv)
-{
+int Repeat(size_t argc, const char **argv) {
 	checkargs(2);
 	int times = getint(1);
 	int prog = getprog(2);
 	int ac = argc - 2;
-	const char** av = argv + 2;
+	const char **av = argv + 2;
 	/* Find program */
 	if (prog < 0) {
 		printf("Program not found. See 'ls' for program names.\n");
@@ -127,10 +112,7 @@ int Repeat(size_t argc, const char** argv)
 	}
 	return 0;
 }
-
-
-int RunTerm(size_t argc, const char** argv)
-{
+int RunTerm(size_t argc, const char **argv) {
 	checkargs(2);
 	int term = getint(1);
 	int prog = getprog(2);
@@ -151,10 +133,7 @@ int RunTerm(size_t argc, const char** argv)
 	Dup2(0, 1);  /* use the same stream for stdout */
 	return Execute(COMMANDS[prog].prog, argc - 2, argv + 2);
 }
-
-
-int SystemInfo(size_t argc, const char** argv)
-{
+int SystemInfo(size_t argc, const char **argv) {
 	printf("Number of cores         = %d\n", cpu_cores());
 	printf("Number of serial devices= %d\n", bios_serial_ports());
 	Fid_t finfo = OpenInfo();
@@ -163,14 +142,14 @@ int SystemInfo(size_t argc, const char** argv)
 		procinfo info;
 		printf("%5s %5s %6s %8s %20s\n",
 		       "PID", "PPID", "State", "Threads", "Main program"
-		      );
+		);
 		/* Read in next piece of info */
-		while (Read(finfo, (char*) &info, sizeof(info)) > 0) {
+		while (Read(finfo, (char *) &info, sizeof(info)) > 0) {
 			Program prog = NULL;
-			const char* argv[10];
+			const char *argv[10];
 			int argc = ParseProcInfo(&info, &prog, 10, argv);
-			const char* pname = "-";
-			if (argc >= 1)  {
+			const char *pname = "-";
+			if (argc >= 1) {
 				pname = argv[0];
 			} else if (argc == -1) {
 				/* Try to give some known names */
@@ -182,16 +161,13 @@ int SystemInfo(size_t argc, const char** argv)
 			       (info.alive ? "ALIVE" : "ZOMBIE"),
 			       info.thread_count,
 			       pname
-			      );
+			);
 		}
 	}
 	printf("\n");
 	return 0;
 }
-
-
-int HelpMessage(size_t argc, const char** argv)
-{
+int HelpMessage(size_t argc, const char **argv) {
 	printf("This is a simple shell for tinyos.\n\
 \n\
 You can run some simple commands. Every command takes a\n\
@@ -202,18 +178,13 @@ When you are tired of playing, type 'exit' to quit.\n\
 ");
 	return 0;
 }
-
-
-void hanoi(int n, int a, int b, int c)
-{
+void hanoi(int n, int a, int b, int c) {
 	if (n == 0) { return; }
 	hanoi(n - 1, a, c, b);
 	printf("Move the top disk from tile %2d to tile %2d\n", a, b);
 	hanoi(n - 1, c, b, a);
 }
-
-int Hanoi(size_t argc, const char** argv)
-{
+int Hanoi(size_t argc, const char **argv) {
 	checkargs(1);
 	int n = getint(1);
 	int MAXN = 15;
@@ -225,21 +196,16 @@ int Hanoi(size_t argc, const char** argv)
 	hanoi(n, 1, 2, 3);
 	return 0;
 }
-
-int Fibonacci(size_t argc, const char** argv)
-{
+int Fibonacci(size_t argc, const char **argv) {
 	checkargs(1);
 	int n = getint(1);
 	printf("Fibonacci(%d)=%d\n", n, fibo(n));
 	return 0;
 }
-
-
-int Capitalize(size_t argc, const char** argv)
-{
+int Capitalize(size_t argc, const char **argv) {
 	char c;
-	FILE* fin = fidopen(0, "r");
-	FILE* fout = fidopen(1, "w");
+	FILE *fin = fidopen(0, "r");
+	FILE *fout = fidopen(1, "w");
 	while ((c = fgetc(fin)) != EOF) {
 		fputc(toupper(c), fout);
 	}
@@ -247,13 +213,10 @@ int Capitalize(size_t argc, const char** argv)
 	fclose(fout);
 	return 0;
 }
-
-
-int LowerCase(size_t argc, const char** argv)
-{
+int LowerCase(size_t argc, const char **argv) {
 	char c;
-	FILE* fin = fidopen(0, "r");
-	FILE* fout = fidopen(1, "w");
+	FILE *fin = fidopen(0, "r");
+	FILE *fout = fidopen(1, "w");
 	while ((c = fgetc(fin)) != EOF) {
 		fputc(tolower(c), fout);
 	}
@@ -261,13 +224,10 @@ int LowerCase(size_t argc, const char** argv)
 	fclose(fout);
 	return 0;
 }
-
-
-int LineEnum(size_t argc, const char** argv)
-{
+int LineEnum(size_t argc, const char **argv) {
 	char c;
-	FILE* fin = fidopen(0, "r");
-	FILE* fout = fidopen(1, "w");
+	FILE *fin = fidopen(0, "r");
+	FILE *fout = fidopen(1, "w");
 	int atend = 1;
 	size_t count = 0;
 	while ((c = fgetc(fin)) != EOF) {
@@ -283,19 +243,17 @@ int LineEnum(size_t argc, const char** argv)
 	fclose(fout);
 	return 0;
 }
-
-int More(size_t argc, const char** argv)
-{
-	char* _line = NULL;
+int More(size_t argc, const char **argv) {
+	char *_line = NULL;
 	size_t _lno = 0;
 	int page = 25;
 	if (argc >= 2) {
 		page = getint(1);
 	}
 	char c;
-	FILE* fin = fidopen(0, "r");
-	FILE* fout = fidopen(1, "w");
-	FILE* fkbd = fidopen(1, "r");
+	FILE *fin = fidopen(0, "r");
+	FILE *fout = fidopen(1, "w");
+	FILE *fkbd = fidopen(1, "r");
 	int atend = 1;
 	size_t count = 0;
 	while ((c = fgetc(fin)) != EOF) {
@@ -306,7 +264,7 @@ int More(size_t argc, const char** argv)
 			if (count % page == 0) {
 				/* Here, we have to use getline, unless we change terminal */
 				fprintf(fout, "press enter to continue:");
-				(void)getline(&_line, &_lno, fkbd);
+				(void) getline(&_line, &_lno, fkbd);
 			}
 		}
 		fprintf(fout, "%c", c);
@@ -318,37 +276,29 @@ int More(size_t argc, const char** argv)
 	free(_line);
 	return 0;
 }
-
-
-
-int WordCount(size_t argc, const char** argv)
-{
+int WordCount(size_t argc, const char **argv) {
 	size_t nchar, nword, nline;
 	nchar = nword = nline = 0;
 	int wspace = 1;
 	char c;
-	FILE* fin = fidopen(0, "r");
+	FILE *fin = fidopen(0, "r");
 	while ((c = fgetc(fin)) != EOF) {
 		nchar++;
 		if (wspace && !isblank(c)) {
 			wspace = 0;
-			nword ++;
+			nword++;
 		}
 		if (c == '\n') {
 			nline++;
 			wspace = 1;
 		}
-		if (isblank(c))
-		{ wspace = 1; }
+		if (isblank(c)) { wspace = 1; }
 	}
 	fclose(fin);
 	printf("%8zd %8zd %8zd\n", nline, nword, nchar);
 	return 0;
 }
-
-
-int ListPrograms(size_t argc, const char** argv)
-{
+int ListPrograms(size_t argc, const char **argv) {
 	printf("no.  %-15s no.of.args   help \n", "Command");
 	printf("%s\n", "---------------------------------------------------");
 	for (int c = 0; COMMANDS[c].cmdname; c++) {
@@ -366,51 +316,39 @@ int ListPrograms(size_t argc, const char** argv)
 ***************************************/
 
 #define REMOTE_SERVER_DEFAULT_PORT 20
-
 /*
   The server's "global variables".
  */
-struct __rs_globals
-{
+struct __rs_globals {
 	/* a global flag */
 	int quit;
-
 	/* server related */
 	port_t port;
 	Tid_t listener;
 	Fid_t listener_socket;
-
 	/* Statistics */
 	size_t active_conn;
 	size_t total_conn;
-
 	/* used so that each connection gets a unique id */
 	size_t conn_id_counter;
-
 	/* used to log connection messages */
 	rlnode log;
 	size_t logcount;
-
 	/* Synchronize with active threads */
 	Mutex mx;
 	CondVar conn_done;
 };
-
 #define GS(name) (((struct __rs_globals*) __globals)->name)
-
 /* forward decl */
-static int rsrv_client(int sock, void* __globals);
-static void log_message(void* __globals, const char* msg, ...)
+static int rsrv_client(int sock, void *__globals);
+static void log_message(void *__globals, const char *msg, ...)
 __attribute__((format(printf, 2, 3)));
-static void log_init(void* __globals);
-static void log_print(void* __globals);
-static void log_truncate(void* __globals);
-
-static int rsrv_listener_thread(int port, void* __globals);
-
+static void log_init(void *__globals);
+static void log_print(void *__globals);
+static void log_truncate(void *__globals);
+static int rsrv_listener_thread(int port, void *__globals);
 /* the thread that accepts new connections */
-static int rsrv_listener_thread(int port, void* __globals)
-{
+static int rsrv_listener_thread(int port, void *__globals) {
 	Fid_t lsock = Socket(port);
 	if (Listen(lsock) == -1) {
 		printf("Cannot listen to the given port: %d\n", port);
@@ -433,11 +371,8 @@ static int rsrv_listener_thread(int port, void* __globals)
 	}
 	return 0;
 }
-
-
 /*  The main server process */
-int RemoteServer(size_t argc, const char** argv)
-{
+int RemoteServer(size_t argc, const char **argv) {
 	/* Create the globals */
 	struct __rs_globals __global_obj;
 	struct __rs_globals *__globals = &__global_obj;
@@ -452,13 +387,13 @@ int RemoteServer(size_t argc, const char** argv)
 	/* Start a thread to listen on */
 	GS(listener) = CreateThread(rsrv_listener_thread, GS(port), __globals);
 	/* Enter the server console */
-	char* linebuff = NULL;
+	char *linebuff = NULL;
 	size_t lineblen = 0;
-	FILE* fin = fidopen(0, "r");
+	FILE *fin = fidopen(0, "r");
 	while (1) {
 		printf("Type h for help, or a command: ");
 		int rc;
-again:
+		again:
 		rc = getline(&linebuff, &lineblen, fin);
 		if (rc == -1 && ferror(fin) && errno == EINTR) {
 			clearerr(fin);
@@ -488,10 +423,10 @@ again:
 			       GS(active_conn), GS(total_conn));
 		} else if (strcmp(linebuff, "h\n") == 0) {
 			printf("Commands: \n"
-			       "q: quit the server\n"
-			       "h: print this help\n"
-			       "s: show statistics\n"
-			       "l: show the log\n");
+					       "q: quit the server\n"
+					       "h: print this help\n"
+					       "s: show statistics\n"
+					       "l: show the log\n");
 		} else if (strcmp(linebuff, "l\n") == 0) {
 			log_print(__globals);
 		} else if (strcmp(linebuff, "\n") == 0) {
@@ -503,74 +438,60 @@ again:
 	free(linebuff);
 	return 0;
 }
-
 typedef struct {
 	rlnode node;
 	char message[0];
 } logrec;
-
 /* log a message */
-static void log_message(void* __globals, const char* msg, ...)
-{
+static void log_message(void *__globals, const char *msg, ...) {
 	/* put the log record in a memory buffer */
-	char* buffer = NULL;
+	char *buffer = NULL;
 	size_t buffer_size;
-	FILE* output = open_memstream(&buffer, &buffer_size);
+	FILE *output = open_memstream(&buffer, &buffer_size);
 	/* At the head of the buffer, reserve space for a logrec */
 	fseek(output, sizeof(logrec), SEEK_SET);
 	/* Add the message */
 	va_list ap;
 	va_start (ap, msg);
-	vfprintf (output, msg, ap);
+	vfprintf(output, msg, ap);
 	va_end (ap);
 	fclose(output);
 	/* Append the record */
-	logrec *rec = (logrec*) buffer;
-	Mutex_Lock(& GS(mx));
-	rlnode_new(& rec->node)->num = ++GS(logcount);
-	rlist_push_back(& GS(log), & rec->node);
-	Mutex_Unlock(& GS(mx));
+	logrec *rec = (logrec *) buffer;
+	Mutex_Lock(&GS(mx));
+	rlnode_new(&rec->node)->num = ++GS(logcount);
+	rlist_push_back(&GS(log), &rec->node);
+	Mutex_Unlock(&GS(mx));
 }
-
 /* init the log */
-static void log_init(void* __globals)
-{
-	rlnode_init(& GS(log), NULL);
+static void log_init(void *__globals) {
+	rlnode_init(&GS(log), NULL);
 	GS(logcount) = 0;
 }
-
 /* Print the log to the console */
-static void log_print(void* __globals)
-{
-	Mutex_Lock(& GS(mx));
-	for (rlnode* ptr = GS(log).next; ptr != &GS(log); ptr = ptr->next) {
-		logrec *rec = (logrec*)ptr;
+static void log_print(void *__globals) {
+	Mutex_Lock(&GS(mx));
+	for (rlnode *ptr = GS(log).next; ptr != &GS(log); ptr = ptr->next) {
+		logrec *rec = (logrec *) ptr;
 		printf("%6d: %s\n", rec->node.num, rec->message);
 	}
-	Mutex_Unlock(& GS(mx));
+	Mutex_Unlock(&GS(mx));
 }
-
-
 /* truncate the log */
-static void log_truncate(void* __globals)
-{
+static void log_truncate(void *__globals) {
 	rlnode list;
 	rlnode_init(&list, NULL);
-	Mutex_Lock(& GS(mx));
-	rlist_append(& list, &GS(log));
-	Mutex_Unlock(& GS(mx));
+	Mutex_Lock(&GS(mx));
+	rlist_append(&list, &GS(log));
+	Mutex_Unlock(&GS(mx));
 	/* Free the memory ! */
 	while (list.next != &list) {
 		rlnode *rec = rlist_pop_front(&list);
 		free(rec);
 	}
 }
-
-
-
 /* Helper to receive a message */
-static int recv_message(Fid_t sock, void* buf, size_t len)
-{
+static int recv_message(Fid_t sock, void *buf, size_t len) {
 	size_t count = 0;
 	while (count < len) {
 		int rc = Read(sock, buf + count, len - count);
@@ -579,10 +500,8 @@ static int recv_message(Fid_t sock, void* buf, size_t len)
 	}
 	return count == len;
 }
-
 /* Helper to execute a remote process */
-static int rsrv_process(size_t argc, const char** argv)
-{
+static int rsrv_process(size_t argc, const char **argv) {
 	checkargs(2);
 	Fid_t sock = atoi(argv[1]);
 	/* Fix the streams */
@@ -603,10 +522,8 @@ static int rsrv_process(size_t argc, const char** argv)
 	WaitChild(Execute(proc, argc - 2, argv + 2), &exitstatus);
 	return exitstatus;
 }
-
 /* this server thread serves a remote cliend */
-static int rsrv_client(int sock, void* __globals)
-{
+static int rsrv_client(int sock, void *__globals) {
 	/* Get your client id */
 	Mutex_Lock(&GS(mx));
 	size_t ID = ++GS(conn_id_counter);
@@ -617,7 +534,7 @@ static int rsrv_client(int sock, void* __globals)
 	the subsequent message args.
 	*/
 	int argl;
-	if (! recv_message(sock, &argl, sizeof(argl))) {
+	if (!recv_message(sock, &argl, sizeof(argl))) {
 		log_message(__globals,
 		            "Cliend[%6zu]: error in receiving request, aborting", ID);
 		goto finish;
@@ -625,14 +542,14 @@ static int rsrv_client(int sock, void* __globals)
 	assert(argl > 0 && argl <= 2048);
 	{
 		char args[argl];
-		if (! recv_message(sock, args, argl)) {
+		if (!recv_message(sock, args, argl)) {
 			log_message(__globals,
 			            "Cliend[%6zu]: error in receiving request, aborting", ID);
 			goto finish;
 		}
 		/* Prepare to execute subprocess */
 		size_t argc = argscount(argl, args);
-		const char* argv[argc + 2];
+		const char *argv[argc + 2];
 		argv[0] = "rsrv_process";
 		char sock_value[32];
 		sprintf(sock_value, "%d", sock);
@@ -646,10 +563,10 @@ static int rsrv_client(int sock, void* __globals)
 		log_message(__globals, "Client[%6zu]: finished with status %d",
 		            ID, exitstatus);
 	}
-finish:
+	finish:
 	Mutex_Lock(&GS(mx));
 	GS(active_conn)--;
-	Cond_Broadcast(& GS(conn_done));
+	Cond_Broadcast(&GS(conn_done));
 	Mutex_Unlock(&GS(mx));
 	return 0;
 }
@@ -659,8 +576,7 @@ finish:
 ************************/
 
 /* helper for RemoteClient */
-static void send_message(Fid_t sock, void* buf, size_t len)
-{
+static void send_message(Fid_t sock, void *buf, size_t len) {
 	size_t count = 0;
 	while (count < len) {
 		int rc = Write(sock, buf + count, len - count);
@@ -672,10 +588,8 @@ static void send_message(Fid_t sock, void* buf, size_t len)
 		Exit(1);
 	}
 }
-
 /* the remote client program */
-int RemoteClient(size_t argc, const char** argv)
-{
+int RemoteClient(size_t argc, const char **argv) {
 	checkargs(1);
 	/* Create a socket to the server */
 	Fid_t sock = Socket(NOPORT);
@@ -694,8 +608,8 @@ int RemoteClient(size_t argc, const char** argv)
 	ShutDown(sock, SHUTDOWN_WRITE);
 	/* Read the server data and display */
 	char c;
-	FILE* fin = fidopen(sock, "r");
-	FILE* fout = fidopen(1, "w");
+	FILE *fin = fidopen(sock, "r");
+	FILE *fout = fidopen(1, "w");
 	while ((c = fgetc(fin)) != EOF) {
 		fputc(c, fout);
 	}
@@ -703,9 +617,6 @@ int RemoteClient(size_t argc, const char** argv)
 	fclose(fout);
 	return 0;
 }
-
-
-
 /*************************************
 
 	A very simple shell for tinyos
@@ -713,40 +624,30 @@ int RemoteClient(size_t argc, const char** argv)
 ***************************************/
 
 
-int process_builtin(int argc, const char** argv)
-{
+int process_builtin(int argc, const char **argv) {
 	if (strcmp(argv[0], "?") == 0) {
 		printf("Type 'help' for help, 'exit' to quit.\n");
 		return 1;
 	}
 	return 0;
 }
-
-
-static inline Fid_t savefid(Fid_t fsaved)
-{
+static inline Fid_t savefid(Fid_t fsaved) {
 	Fid_t savior = OpenNull();
 	assert(savior != NOFILE);
 	Dup2(fsaved, savior);
 	return savior;
 }
-
-
-int process_line(int argc, const char** argv)
-{
+int process_line(int argc, const char **argv) {
 	/* Split up into pipeline fragments */
 	int Vargc[argc];
 	Vargc[0] = 0;
-	const char** Vargv[argc];
+	const char **Vargv[argc];
 	int frag = 0;
 	for (int i = 0; i < argc; i++)
 		if (strcmp(argv[i], "|") != 0) {
-			Vargc[frag] ++;
-			if (Vargc[frag] == 1)
-			{ Vargv[frag] = argv + i; }
-		}
-		else
-		{ Vargc[++frag] = 0; }
+			Vargc[frag]++;
+			if (Vargc[frag] == 1) { Vargv[frag] = argv + i; }
+		} else { Vargc[++frag] = 0; }
 	frag++;
 	/* Check that no fragment is empty and each has a program */
 	int comd[frag];
@@ -757,9 +658,8 @@ int process_line(int argc, const char** argv)
 		}
 		int c;
 		for (c = 0; COMMANDS[c].cmdname; c++)
-			if (strcmp(COMMANDS[c].cmdname, Vargv[i][0]) == 0)
-			{ break; }
-		if (! COMMANDS[c].cmdname) {
+			if (strcmp(COMMANDS[c].cmdname, Vargv[i][0]) == 0) { break; }
+		if (!COMMANDS[c].cmdname) {
 			printf("Command not found: '%s'\n", Vargv[i][0]);
 			return 0;
 		}
@@ -774,7 +674,7 @@ int process_line(int argc, const char** argv)
 	for (int i = 0; i < frag; i++) {
 		if (i < frag - 1) {
 			/* Not the last fragment, make a pipe */
-			Pipe(& pipe);
+			Pipe(&pipe);
 			Dup2(pipe.write, 1);
 			Close(pipe.write);
 		} else {
@@ -797,18 +697,13 @@ int process_line(int argc, const char** argv)
 	for (int i = 0; i < frag; i++) {
 		int exitval;
 		WaitChild(child[i], &exitval);
-		if (exitval)
-		{ printf("%s exited with status %d\n", Vargv[i][0], exitval); }
+		if (exitval) { printf("%s exited with status %d\n", Vargv[i][0], exitval); }
 	}
 	return 1;
 }
-
-
-
-int Shell(size_t argc, const char** argv)
-{
+int Shell(size_t argc, const char **argv) {
 	int exitval = 0;
-	char* cmdline = NULL;
+	char *cmdline = NULL;
 	size_t cmdlinelen = 0;
 	FILE *fin, *fout;
 	fin = fidopen(0, "r");
@@ -816,13 +711,13 @@ int Shell(size_t argc, const char** argv)
 	fprintf(fout, "Starting tinyos shell\nType 'help' for help, 'exit' to quit.\n");
 	const int ARGN = 128;
 	for (;;) {
-		const char * argv[ARGN];
-		char* pos;
+		const char *argv[ARGN];
+		char *pos;
 		int argc;
 		/* Read the command line */
 		fprintf(fout, "%% ");
 		ssize_t rc;
-again:
+		again:
 		rc = getline(&cmdline, &cmdlinelen, fin);
 		if (rc == -1 && ferror(fin) && errno == EINTR) {
 			clearerr(fin);
@@ -834,14 +729,12 @@ again:
 		/* Break it up */
 		for (argc = 0; argc < ARGN - 1; argc++) {
 			argv[argc] = strtok_r((argc == 0 ? cmdline : NULL), " \n\t", &pos);
-			if (argv[argc] == NULL)
-			{ break; }
+			if (argv[argc] == NULL) { break; }
 		}
 		if (argc == 0) { continue; }
 		/* Check exit */
 		if (strcmp(argv[0], "exit") == 0) {
-			if (argc >= 2)
-			{ exitval = atoi(argv[1]); }
+			if (argc >= 2) { exitval = atoi(argv[1]); }
 			goto finished;
 		}
 		/* First check if command is builtin */
@@ -850,20 +743,16 @@ again:
 		process_line(argc, argv);
 	}
 	fprintf(fout, "Exiting\n");
-finished:
+	finished:
 	free(cmdline);
 	fclose(fin);
 	fclose(fout);
 	return exitval;
 }
-
-
-
 /*
  * This is the initial task, which starts all the other tasks (except for the idle task).
  */
-int boot_shell(int argl, void* args)
-{
+int boot_shell(int argl, void *args) {
 	int nshells = (GetTerminalDevices() > 0) ? GetTerminalDevices() : 1;
 	/* Find the shell */
 	int shprog = getprog_byname("sh");
@@ -872,34 +761,39 @@ int boot_shell(int argl, void* args)
 		tinyos_replace_stdio();
 		for (int i = 0; i < nshells; i++) {
 			int fdin = OpenTerminal(i);
-			if (fdin != 0) {  Dup2(fdin, 0 ); Close(fdin);  }
+			if (fdin != 0) {
+				Dup2(fdin, 0);
+				Close(fdin);
+			}
 			int fdout = OpenTerminal(i);
-			if (fdout != 1) {  Dup2(fdout, 1 ); Close(fdout);  }
-			Execute(COMMANDS[shprog].prog, 1, & COMMANDS[shprog].cmdname );
+			if (fdout != 1) {
+				Dup2(fdout, 1);
+				Close(fdout);
+			}
+			Execute(COMMANDS[shprog].prog, 1, &COMMANDS[shprog].cmdname);
 			Close(0);
 		}
-		while ( WaitChild(NOPROC, NULL) != NOPROC ); /* Wait for all children */
+		while (WaitChild(NOPROC, NULL) != NOPROC); /* Wait for all children */
 		tinyos_restore_stdio();
 	} else {
 		fprintf(stderr, "Switching standard streams to pseudo console\n");
 		tinyos_replace_stdio();
 		for (int i = 0; i < nshells; i++) {
-			Close(0); Close(1);
+			Close(0);
+			Close(1);
 			tinyos_pseudo_console();
-			Execute(COMMANDS[shprog].prog, 1, & COMMANDS[shprog].cmdname );
+			Execute(COMMANDS[shprog].prog, 1, &COMMANDS[shprog].cmdname);
 		}
-		while ( WaitChild(NOPROC, NULL) != NOPROC ); /* Wait for all children */
+		while (WaitChild(NOPROC, NULL) != NOPROC); /* Wait for all children */
 		tinyos_restore_stdio();
 		//Execute(COMMANDS[shprog].prog, 1, & COMMANDS[shprog].cmdname );
 		//while( WaitChild(NOPROC, NULL)!=NOPROC ); /* Wait for all children */
 	}
 	return 0;
 }
-
 /****************************************************/
 
-void usage(const char* pname)
-{
+void usage(const char *pname) {
 	printf("usage:\n  %s <ncores> <nterm> <philosophers> <bites>\n\n  \
     where:\n\
     <ncores> is the number of cpu cores to use,\n\
@@ -907,10 +801,7 @@ void usage(const char* pname)
 	       pname);
 	exit(1);
 }
-
-
-int main(int argc, const char** argv)
-{
+int main(int argc, const char **argv) {
 	unsigned int ncores, nterm;
 	if (argc != 3) { usage(argv[0]); }
 	ncores = atoi(argv[1]);
@@ -921,5 +812,3 @@ int main(int argc, const char** argv)
 	printf("*** TinyOS halted. Bye!\n");
 	return 0;
 }
-
-

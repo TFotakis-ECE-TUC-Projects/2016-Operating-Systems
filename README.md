@@ -1,4 +1,3 @@
-
 # TinyOS v.3
 
 TinyOS is a very small operating system, built on top of a simple-minded virtual machine, whose purpose is
@@ -48,6 +47,3 @@ calls, in particular signal streams). Any recent (last few years) version of Lin
 Working with the code, at the basic level, requires a recent GCC compiler (with support for C11). The
 standard packages `doxygen` and `valgrind` with their dependencies (e.g., `graphviz`) are also needed 
 for anything serious, as well as the GDB debugger.
-
-
-

@@ -1,4 +1,3 @@
-
 #include <assert.h>
 #include <sys/mman.h>
 #include "tinyos.h"
@@ -10,8 +9,6 @@
 #include <valgrind/valgrind.h>
 
 #endif
-
-
 /*
    The thread layout.
   --------------------
@@ -38,26 +35,19 @@
   Disadvantages: The stack cannot grow unless we move the whole TCB. Of course,
   we do not support stack growth anyway!
  */
-
-
 /*
   A counter for active threads. By "active", we mean 'existing',
   with the exception of idle threads (they don't count).
  */
 volatile unsigned int active_threads = 0;
 Mutex active_threads_spinlock = MUTEX_INIT;
-
-
 /* This is specific to Intel Pentium! */
 #define SYSTEM_PAGE_SIZE  (1<<12)
-
 /* The memory allocated for the TCB must be a multiple of SYSTEM_PAGE_SIZE */
 #define THREAD_TCB_SIZE   (((sizeof(TCB)+SYSTEM_PAGE_SIZE-1)/SYSTEM_PAGE_SIZE)*SYSTEM_PAGE_SIZE)
 #define THREAD_SIZE  (THREAD_TCB_SIZE+THREAD_STACK_SIZE)
-
 //#define MMAPPED_THREAD_MEM
 #ifdef MMAPPED_THREAD_MEM
-
 /*
   Use mmap to allocate a thread. A more detailed implementation can allocate a
   "sentinel page", and change access to PROT_NONE, so that a stack overflow
@@ -107,14 +97,12 @@ void initialize_context(ucontext_t *ctx, stack_t stack, void (*ctx_func)()) {
 /*
   This is the function that is used to start normal threads.
 */
-
 void gain(int preempt); /* forward */
-
 static void thread_start() {
 	gain(1);
 	CURTHREAD->thread_func();
 	/* We are not supposed to get here! */
-//    assert(0);
+	assert(0);
 }
 /*
   Initialize and return a new TCB
@@ -131,10 +119,12 @@ TCB *spawn_thread(PCB *pcb, void (*func)()) {
 	tcb->phase = CTX_CLEAN;
 	tcb->state_spinlock = MUTEX_INIT;
 	tcb->thread_func = func;
+	/*Our edits*/
+	/*Initialize our new tcb properties*/
 	tcb->priority = MAX_PRIORITY / 2;
 	tcb->quantums_passed = 0;
 	tcb->yield_state = DEFAULT;
-	tcb->interruptFlag=0;
+	tcb->interruptFlag = 0;
 	rlnode_init(&tcb->sched_node, tcb);  /* Intrusive list node */
 	/* Prepare the stack */
 	stack_t stack = {
@@ -149,7 +139,6 @@ TCB *spawn_thread(PCB *pcb, void (*func)()) {
 			VALGRIND_STACK_REGISTER(stack.ss_sp, stack.ss_sp + THREAD_STACK_SIZE);
 #endif
 	/* increase the count of active threads */
-//    sched_queue_add(tcb);//--------------------------------------------------------------------------------------
 	Mutex_Lock(&active_threads_spinlock);
 	active_threads++;
 	Mutex_Unlock(&active_threads_spinlock);
@@ -167,30 +156,21 @@ void release_TCB(TCB *tcb) {
 	active_threads--;
 	Mutex_Unlock(&active_threads_spinlock);
 }
-
 /*
  *
  * Scheduler
  *
  */
-
-
 /*
  *  Note: the scheduler routines are all in the non-preemptive domain.
  */
-
-
 /* Core control blocks */
 CCB cctx[MAX_CORES];
-
-
 /*
   The scheduler queue is implemented as a doubly linked list. The
   head and tail of this list are stored in  SCHED.
 */
-
 Mutex sched_spinlock = MUTEX_INIT;    /* spinlock for scheduler queue */
-
 /* Interrupt handler for ALARM */
 void yield_handler() {
 	yield();
@@ -203,7 +183,7 @@ void ici_handler() {
   Add PCB to the end of the scheduler list.
 */
 void sched_queue_add(TCB *tcb) {
-	/* Insert at the end of the scheduling list */
+	/* Insert at the end of the specific priority's scheduling list */
 	Mutex_Lock(&sched_spinlock);
 	assert(tcb->priority < MAX_PRIORITY && tcb->priority >= 0);
 	rlist_push_back(&priority_table[tcb->priority], &tcb->sched_node);
@@ -216,10 +196,11 @@ void sched_queue_add(TCB *tcb) {
   return it. Return NULL if the list is empty.
 */
 TCB *sched_queue_select() {
+	/*Select the fist thread from the greatest priority's scheduling list*/
 	Mutex_Lock(&sched_spinlock);
 	rlnode *sel = NULL;
 	for (int i = MAX_PRIORITY - 1; i >= 0; i--) {
-		if (rlist_len(&priority_table[i]) > 0) {
+		if (!is_rlist_empty(&priority_table[i])) {
 			sel = rlist_pop_front(&priority_table[i]);
 			break;
 		}
@@ -256,8 +237,9 @@ void sleep_releasing(Thread_state state, Mutex *mx) {
 	 */
 	int preempt = preempt_off;
 	Mutex_Lock(&tcb->state_spinlock);
-	/* mark the process as stopped */
-	if(!tcb->interruptFlag){
+	/*If the thread was interrupted do not change its state esle mark it as stopped*/
+	if (!tcb->interruptFlag) {
+		/* mark the process as stopped */
 		tcb->state = state;
 	}
 	/* Release mx */
@@ -269,10 +251,9 @@ void sleep_releasing(Thread_state state, Mutex *mx) {
 	if (preempt) { preempt_on; }
 }
 /* This function is the entry point to the scheduler's context switching */
-
 void yield() {
 	/* Reset the timer, so that we are not interrupted by ALARM */
-	int quantum_left = bios_cancel_timer();
+	int quantum_left = bios_cancel_timer();/*Assign the remaining quantum value to check if the thread was CPU Bounded*/
 	/* We must stop preemption but save it! */
 	int preempt = preempt_off;
 	TCB *current = CURTHREAD;  /* Make a local copy of current process, for speed */
@@ -293,8 +274,8 @@ void yield() {
 	}
 	Mutex_Unlock(&current->state_spinlock);
 	/*Our edits*/
-	thread_list_priority_calculation();
-	current_priority_calculation(quantum_left);
+	thread_list_priority_calculation();//Used to avoid starvation
+	current_priority_calculation(quantum_left);//Used to calculate the current threads next priority
 	/* Get next */
 	TCB *next = sched_queue_select();
 	/* Maybe there was nothing ready in the scheduler queue ? */
@@ -316,34 +297,29 @@ void yield() {
 	gain(preempt);
 }
 /*Our edits*/
+/*Calculate each thread's next priority to avoid starvation.
+ * See more in the declaration*/
 void thread_list_priority_calculation() {
 	Mutex_Lock(&sched_spinlock);
-	for (int i = 0; i < MAX_PRIORITY - 1; i++) {
-		assert(&priority_table[i] != NULL);
+	for (int i = MAX_PRIORITY - 2; i >= 0; i--) {
 		int length = rlist_len(&priority_table[i]);
-#define BOOL(e) ((e)?1:0)
-		assert(BOOL(is_rlist_empty(&priority_table[i])) == BOOL(length == 0));
-		if (length != 0) {
-			rlnode *tmp = NULL;
-			assert(length != 0);
-			for (int j = 0; j < length; j++) {
-				tmp = rlist_pop_front(&priority_table[i]);
-				assert(tmp != NULL);
-				assert(tmp->tcb != NULL);
-				assert(tmp->tcb->priority < MAX_PRIORITY);
-				if (tmp->tcb->quantums_passed + 1 >= MAX_QUANTUMS_PASSED) {
-					tmp->tcb->priority =
-							(tmp->tcb->priority + 1) >= MAX_PRIORITY - 1 ? MAX_PRIORITY - 1 : tmp->tcb->priority + 1;
-					tmp->tcb->quantums_passed = 0;
-				} else {
-					tmp->tcb->quantums_passed++;
-				}
-				rlist_push_back(&priority_table[tmp->tcb->priority], tmp);
+		rlnode *tmp = NULL;
+		for (int j = 0; j < length; j++) {
+			tmp = rlist_pop_front(&priority_table[i]);
+			if (tmp->tcb->quantums_passed + 1 >= MAX_QUANTUMS_PASSED) {
+				tmp->tcb->priority =
+						(tmp->tcb->priority + 1) >= MAX_PRIORITY - 1 ? MAX_PRIORITY - 1 : tmp->tcb->priority + 1;
+				tmp->tcb->quantums_passed = 0;
+			} else {
+				tmp->tcb->quantums_passed++;
 			}
+			rlist_push_back(&priority_table[tmp->tcb->priority], tmp);
 		}
 	}
 	Mutex_Unlock(&sched_spinlock);
 }
+/*Calculate the current thread's next priority considering if it is CPU or IO bounded.
+ *See more int the declaration*/
 void current_priority_calculation(int quantum_left) {
 	Mutex_Lock(&sched_spinlock);
 	if (CURTHREAD->yield_state == IO) {
@@ -368,7 +344,6 @@ void current_priority_calculation(int quantum_left) {
   domain (e.g., waiting at some driver), we need not to turn preemption
   on!
 */
-
 void gain(int preempt) {
 	TCB *current = CURTHREAD;
 	TCB *prev = current->prev;
@@ -420,7 +395,6 @@ static void idle_thread() {
 	bios_cancel_timer();
 	cpu_core_restart_all();
 }
-
 /*Our edits*/
 /*
   Initialize the scheduler priority table queues

@@ -2,11 +2,8 @@
  *  Scheduler API and implementation
  *
  */
-
 #ifndef __KERNEL_SCHED_H
 #define __KERNEL_SCHED_H
-
-
 /**
   @file kernel_sched.h
   @brief TinyOS kernel: The Scheduler API
@@ -20,7 +17,6 @@
 
   @{
 */
-
 #include <ucontext.h>
 #include "util.h"
 #include "bios.h"
@@ -31,7 +27,6 @@
  *  The Thread Control Block
  *
  *****************************/
-
 /** @brief Thread state.
 
   A value of this type, together with a @c Thread_phase value, completely
@@ -93,18 +88,13 @@ typedef struct thread_control_block {
 	Yield_state yield_state;
 	int interruptFlag;
 } TCB;
-
 /** Thread stack size */
 #define THREAD_STACK_SIZE  (128*1024)
-
-
 /************************
  *
  *      Scheduler
  *
  ************************/
-
-
 /** @brief Core control block.
 
   Per-core info in memory (basically scheduler-related)
@@ -117,28 +107,23 @@ typedef struct core_control_block {
 	sig_atomic_t preemption;    /**< Marks preemption, used by the locking code */
 
 } CCB;
-
 /*Our edits*/
 /** @brief The max priority value*/
 #define MAX_PRIORITY (15)
-
 /** @brief The max quantums number to pass before increasing priority to too much waiting thread*/
-#define MAX_QUANTUMS_PASSED (80)
+#define MAX_QUANTUMS_PASSED (10)
 /** @brief The priority table*/
 rlnode priority_table[MAX_PRIORITY];
 /** @brief the array of Core Control Blocks (CCB) for the kernel */
 extern CCB cctx[MAX_CORES];
-
 /** @brief The current core's CCB */
 #define CURCORE  (cctx[cpu_core_id])
-
 /**
   @brief The current thread.
 
   This is a pointer to the TCB of the thread currently executing on this core.
 */
 #define CURTHREAD  (CURCORE.current_thread)
-
 /**
   @brief The current thread.
 
@@ -193,7 +178,6 @@ void sleep_releasing(Thread_state newstate, Mutex *mx);
   it will renew the quantum for the current thread.
  */
 void yield();
-
 /*Our edits*/
 /**
   @brief Calculate all threads priorities
@@ -226,15 +210,11 @@ void run_scheduler(void);
    This function is called during kernel initialization.
  */
 void initialize_scheduler(void);
-
-
 /**
   @brief Quantum (in microseconds)
 
   This is the default quantum for each thread, in microseconds.
   */
 #define QUANTUM (50000L)
-
 /** @} */
-
 #endif

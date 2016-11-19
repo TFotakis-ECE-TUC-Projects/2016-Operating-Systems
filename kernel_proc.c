@@ -72,24 +72,22 @@ void release_PCB(PCB *pcb) {
 	pcb_freelist = pcb;
 	process_count--;
 }
-
 /*
  *
  * Process creation
  *
  */
-
 /*
   This function is provided as an argument to spawn,
   to execute the main thread of a process.
 */
 void start_main_thread() {
-	PTCB *ptcb = (PTCB *) ThreadSelf_withMutex();
+	PTCB *ptcb = (PTCB *) ThreadSelf_withMutex();//Get the Current Thread's PTCB
+	assert(ptcb != NULL);
 	int argl = ptcb->argl;
 	void *args = ptcb->args;
 	Task call = ptcb->task;
 	int exitval = call(argl, args);
-	assert(ptcb != NULL);
 	Exit(exitval);
 }
 /*
@@ -117,15 +115,16 @@ Pid_t Exec(Task call, int argl, void *args) {
 			if (newproc->FIDT[i]) { FCB_incref(newproc->FIDT[i]); }
 		}
 	}
+	/*Our edits*/
+	/*Initializing out new pcb properties*/
 	newproc->threads_counter = 0;
-	/* Set the main thread's function */
 	newproc->condVar = COND_INIT;
+	/*Initializing new ptcb*/
 	PTCB *ptcb = (PTCB *) malloc(sizeof(PTCB));
 	ptcb->refcount = 0;
 	ptcb->isExited = 0;
 	ptcb->isDetached = 0;
 	ptcb->task = call;
-	/* Copy the arguments to new storage, owned by the new process */
 	ptcb->argl = argl;
 	if (args != NULL) {
 		ptcb->args = malloc(argl);
@@ -223,7 +222,7 @@ void Exit(int exitval) {
 	while (curproc->threads_counter != 0) {
 		Cond_Wait(&kernel_mutex, &CURPROC->condVar);
 	}
-	curproc->exitval = exitval;
+	/*Free the Current PCB's PTCB list*/
 	while (!is_rlist_empty(&curproc->PTCB_list)) {
 		rlnode *tmp = rlist_pop_front(&curproc->PTCB_list);
 		free(tmp->ptcb);

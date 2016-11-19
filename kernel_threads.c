@@ -2,6 +2,7 @@
 #include "kernel_sched.h"
 #include "kernel_proc.h"
 #include "kernel_cc.h"
+/*Start the current thread created by the spawn function*/
 void start_thread() {
 	PTCB *ptcb = (PTCB *) ThreadSelf_withMutex();
 	int argl = ptcb->argl;
@@ -45,6 +46,9 @@ Tid_t CreateThread(Task task, int argl, void *args) {
 	Mutex_Unlock(&kernel_mutex);
 	return (Tid_t) ptcb->thread;
 }
+/**
+ 	@brief Return the Tid of the tid Thread's PTCB.
+*/
 PTCB *FindPTCB(Tid_t tid) {
 	int length = rlist_len(&CURPROC->PTCB_list);
 	assert(length != 0);
@@ -60,12 +64,15 @@ PTCB *FindPTCB(Tid_t tid) {
 	return ptcb;
 }
 /**
-  @brief Return the Tid of the current thread.
+  @brief Return the Tid of the current thread's PTCB.
  */
 Tid_t ThreadSelf() {
 	PTCB *ptcb = FindPTCB((Tid_t) CURTHREAD);
 	return (Tid_t) ptcb;
 }
+/**
+ 	@brief Call the ThreadSelf using Mutexes.
+ */
 Tid_t ThreadSelf_withMutex() {
 	Mutex_Lock(&kernel_mutex);
 	Tid_t tid = ThreadSelf();
@@ -111,6 +118,7 @@ int ThreadDetach(Tid_t tid) {
 		returnVal = -1;
 	} else {
 		ptcb->isDetached = 1;
+		Cond_Broadcast(&CURPROC->condVar);
 		returnVal = 0;
 	}
 	Mutex_Unlock(&kernel_mutex);
@@ -137,13 +145,13 @@ void ThreadExit(int exitval) {
   */
 int ThreadInterrupt(Tid_t tid) {
 	Mutex_Lock(&kernel_mutex);
-	TCB *tcb = (TCB*)tid;
-	tcb->interruptFlag=1;
-	if(tcb->state==STOPPED){
+	TCB *tcb = (TCB *) tid;
+	tcb->interruptFlag = 1;
+	if (tcb->state == STOPPED) {
 		Mutex_Unlock(&kernel_mutex);
 		wakeup(tcb);
 		return 0;
-	}else{
+	} else {
 		Mutex_Unlock(&kernel_mutex);
 		return -1;
 	}
@@ -164,6 +172,6 @@ int ThreadIsInterrupted() {
   */
 void ThreadClearInterrupt() {
 	Mutex_Lock(&kernel_mutex);
-	CURTHREAD->interruptFlag=0;
+	CURTHREAD->interruptFlag = 0;
 	Mutex_Unlock(&kernel_mutex);
 }

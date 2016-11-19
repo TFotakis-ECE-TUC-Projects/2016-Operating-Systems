@@ -1,7 +1,6 @@
 #ifndef __TINYOS_H__
 #define __TINYOS_H__
 #include <stdint.h>
-
 /**
   @file tinyos.h
   @brief Public kernel API
@@ -16,43 +15,33 @@
 
   @{
  */
-
 /*******************************************
  * Processes types and constants.
  *******************************************/
-
 /**
   @brief The type of a process ID.
   */
 typedef int Pid_t;    /* The PID type  */
-
 /** @brief The invalid PID */
 #define NOPROC (-1)
-
 /** @brief The maximum number of processes */
 #define MAX_PROC 65536
 /** @brief The type of a file ID. */
 typedef int Fid_t;
-
 /** @brief The maximum number of open files per process.
    Only values 0 to MAX_FILEID-1 are legal for file descriptors. */
 #define MAX_FILEID 16
-
 /** @brief The invalid file id. */
 #define NOFILE  (-1)
 /**
   @brief The type of a thread ID.
   */
 typedef uintptr_t Tid_t;
-
 /** @brief The invalid thread ID */
 #define NOTHREAD ((Tid_t)0)
-
-
 /*******************************************
  *      Concurrency control
  *******************************************/
-
 /** @brief A mutex is used to provide mutual exclusion.
 
     Mutexes are used extensively to surround critical sections. The TinyOS
@@ -64,7 +53,6 @@ typedef uintptr_t Tid_t;
     @see MUTEX_INIT
 */
 typedef char Mutex;
-
 /**
   @brief This macro is used to initialize mutexes.
 
@@ -106,8 +94,6 @@ typedef struct {
 	void *waitset;        /**< The set of waiting threads */
 	Mutex waitset_lock;   /**< A mutex to protect `waitset` */
 } CondVar;
-
-
 /** @brief  This macro is used to initialize condition variables.
 
    It is used as follows:
@@ -140,6 +126,9 @@ typedef struct {
   @see Cond_Broadcast
   */
 int Cond_Wait(Mutex *mx, CondVar *cv);
+/**
+ * @brief Used to flag a thread as IO Bounded.
+ * */
 int Cond_Wait_from_IO(Mutex *mx, CondVar *cv);
 /** @brief Signal a condition variable.
 
@@ -159,14 +148,11 @@ void Cond_Signal(CondVar *);
   @see Cond_Signal
 */
 void Cond_Broadcast(CondVar *);
-
-
 /*******************************************
  *
  * Process creation
  *
  *******************************************/
-
 /** @brief The signature for the main function of a process.
 
    New processes are created by calling a starting function, whose signature is Task.
@@ -242,14 +228,11 @@ Pid_t GetPid(void);
  This function returns the pid of the parent of the current process.
  */
 Pid_t GetPPid(void);
-
 /*******************************************
  *
  * Threads
  *
  *******************************************/
-
-
 /**
   @brief Create a new thread in the current process.
 
@@ -274,7 +257,10 @@ Tid_t CreateThread(Task task, int argl, void *args);
   @brief Return the Tid of the current thread.
  */
 Tid_t ThreadSelf();
-Tid_t  ThreadSelf_withMutex();
+/**
+ * @brief Used to call the ThreadSelf function using mutexes.
+ * */
+Tid_t ThreadSelf_withMutex();
 /**
   @brief Join the given thread.
 
@@ -339,15 +325,11 @@ int ThreadIsInterrupted();
   current thread.
   */
 void ThreadClearInterrupt();
-
-
-
 /*******************************************
  *
  * Low-level I/O
  *
  *******************************************/
-
 /** @brief Return the number of terminal devices available.
 
   Terminals are numbered starting from 0.
@@ -443,14 +425,11 @@ int Close(Fid_t fd);
   - oldfd is not an open file.
  */
 int Dup2(Fid_t oldfd, Fid_t newfd);
-
 /*******************************************
  *
  * Pipes
  *
  *******************************************/
-
-
 /**
   @brief A pair of file ids, describing a pipe.
 
@@ -483,25 +462,21 @@ typedef struct pipe_s {
     - the available file ids for the process are exhausted.
 */
 int Pipe(pipe_t *pipe);
-
 /*******************************************
  *
  * Sockets (local)
  *
  *******************************************/
-
 /**
   @brief A type for socket ports.
 
   A socket port is an integer between 1 and @c MAX_PORT.
 */
 typedef int16_t port_t;
-
 /**
   @brief the maximum legal port
 */
 #define MAX_PORT 1023
-
 /**
   @brief a null value for a port
 */
@@ -638,15 +613,11 @@ typedef enum {
        - the file id @c sock is not legal (a connected socket stream).
 */
 int ShutDown(Fid_t sock, shutdown_mode how);
-
-
-
 /*******************************************
  *
  * System information
  *
  *******************************************/
-
 /**
   @brief The max. size of args returned by a procinfo structure.
   */
@@ -700,16 +671,11 @@ typedef struct procinfo {
     - the available file ids for the process are exhausted.
  */
 Fid_t OpenInfo();
-
-
-
-
 /*******************************************
  *
  * System boot
  *
  *******************************************/
-
 /** @brief Boot tinyos3.
 
    The function must initialize the simulated computer with the given number of
@@ -721,8 +687,5 @@ Fid_t OpenInfo();
    and then returns.
    */
 void boot(unsigned int ncores, unsigned int terminals, Task boot_task, int argl, void *args);
-
-
 /** @} */
-
 #endif
