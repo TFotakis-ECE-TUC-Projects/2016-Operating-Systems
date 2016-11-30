@@ -108,8 +108,7 @@ typedef struct device_control_block {
 	Device_type type;     /**< @brief Device type.
                             Much like 'major number' in Unix, determines the driver. */
 	uint devnum;           /**< @brief Number of devices for this major number.
-                          */
-
+  							*/
 	file_ops dev_fops;    /**< @brief Device operations
   							This structure is provided by the device driver. */
 } DCB;

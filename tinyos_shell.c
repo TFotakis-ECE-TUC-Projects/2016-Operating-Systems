@@ -792,7 +792,6 @@ int boot_shell(int argl, void *args) {
 	return 0;
 }
 /****************************************************/
-
 void usage(const char *pname) {
 	printf("usage:\n  %s <ncores> <nterm> <philosophers> <bites>\n\n  \
     where:\n\

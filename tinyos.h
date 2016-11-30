@@ -437,7 +437,7 @@ int Dup2(Fid_t oldfd, Fid_t newfd);
   with two file descriptors, for the read and write ends of
   the pipe respectively.
   Writing bytes to the write end using @c Write() will make them
-  available at the read end, unsing @c Read().
+  available at the read end, using @c Read().
 */
 typedef struct pipe_s {
 	Fid_t read;     /**< The read end of the pipe */
@@ -462,6 +462,22 @@ typedef struct pipe_s {
     - the available file ids for the process are exhausted.
 */
 int Pipe(pipe_t *pipe);
+/*Our edits*/
+#define BUFFER_SIZE (16*1024)
+typedef struct pipe_control_block{
+	pipe_t *pipe;
+	CondVar cvRead;
+	CondVar cvWrite;
+	char buffer[BUFFER_SIZE];
+	int readPos;
+	int writePos;
+}PipeCB;
+int pipe_read(void *pipeCB, char *buf, unsigned int size);
+int pipe_write(void *pipeCB, const char *buf, unsigned int size);
+int pipe_close(void *pipeCB);
+int dummyRead(void *pipeCB, char *buf, unsigned int size);
+int dummyWrite(void *pipeCB, const char *buf, unsigned int size);
+
 /*******************************************
  *
  * Sockets (local)

@@ -4,6 +4,7 @@
 #include "kernel_sched.h"
 #include "kernel_streams.h"
 #include "kernel_proc.h"
+
 /*************************************
 
   Devices and device drivers
@@ -151,7 +152,9 @@ void initialize_devices() {
 }
 int device_open(Device_type major, uint minor, void **obj, file_ops **ops) {
 	assert(major < DEV_MAX);
-	if (minor >= devtable[major].devnum) { return -1; }
+	if (minor >= devtable[major].devnum) {
+		return -1;
+	}
 	*obj = devtable[major].dev_fops.Open(minor);
 	*ops = &devtable[major].dev_fops;
 	return 0;
