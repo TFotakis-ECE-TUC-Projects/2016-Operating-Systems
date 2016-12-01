@@ -463,7 +463,7 @@ typedef struct pipe_s {
 */
 int Pipe(pipe_t *pipe);
 /*Our edits*/
-#define BUFFER_SIZE (16*1024)
+#define BUFFER_SIZE (8*1024)
 typedef struct pipe_control_block{
 	pipe_t *pipe;
 	CondVar cvRead;
@@ -474,7 +474,8 @@ typedef struct pipe_control_block{
 }PipeCB;
 int pipe_read(void *pipeCB, char *buf, unsigned int size);
 int pipe_write(void *pipeCB, const char *buf, unsigned int size);
-int pipe_close(void *pipeCB);
+int pipe_closeReader(void *pipeCB);
+int pipe_closeWriter(void *pipeCB);
 int dummyRead(void *pipeCB, char *buf, unsigned int size);
 int dummyWrite(void *pipeCB, const char *buf, unsigned int size);
 

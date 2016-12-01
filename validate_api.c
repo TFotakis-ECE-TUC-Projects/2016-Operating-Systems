@@ -648,7 +648,7 @@ BOOT_TEST(test_create_join_thread,
 }
 BOOT_TEST(test_exit_many_threads, "Test that a process thread calling Exit will clean up correctly.") {
 	int task(int argl, void *args) {
-		fibo(42);//Sadly for value 45 we have timeout failure caused from the excess time of the fibo(45) calculation
+		fibo(40);//Sadly for value 45 we have timeout failure caused from the excess time of the fibo(45) calculation
 		return 2;
 	}
 	int mthread(int argl, void *args) {
@@ -759,6 +759,7 @@ int data_producer(int argl, void *args) {
 	while (nbytes > 0) {
 		unsigned int n = (nbytes < 32768) ? nbytes : 32768;
 		int rc = Write(1, buffer, n);
+		MSG("rc=%d\n",rc);
 		assert(rc > 0);
 		nbytes -= rc;
 	}
@@ -780,14 +781,13 @@ int data_consumer(int argl, void *args) {
 		count += rc;
 	}
 	ASSERT(count == nbytes);
+	MSG("Count=%d nbytes=%d",count,nbytes);
 	return 0;
 }
-BOOT_TEST(test_pipe_single_producer,
-          "Test blocking in the pipe by a single producer single consumer sending 10Mbytes of data."
-) {
+BOOT_TEST(test_pipe_single_producer, "Test blocking in the pipe by a single producer single consumer sending 10Mbytes of data.") {
 	pipe_t pipe;
 	ASSERT(Pipe(&pipe) == 0);
-
+	MSG("pipe.read=%d kai pipe.write=%d\n",pipe.read,pipe.write);
 	/* First, make pipe.read be zero. We cannot just Dup, because we may close pipe.write */
 	if (pipe.read != 0) {
 		if (pipe.write == 0) {
@@ -813,9 +813,7 @@ BOOT_TEST(test_pipe_single_producer,
 	WaitChild(NOPROC, NULL);
 	return 0;
 }
-BOOT_TEST(test_pipe_multi_producer,
-          "Test blocking in the pipe by 10 producers and single consumer sending 10Mbytes of data."
-) {
+BOOT_TEST(test_pipe_multi_producer, "Test blocking in the pipe by 10 producers and single consumer sending 10Mbytes of data.") {
 	pipe_t pipe;
 	ASSERT(Pipe(&pipe) == 0);
 
@@ -847,18 +845,15 @@ BOOT_TEST(test_pipe_multi_producer,
 	WaitChild(NOPROC, NULL);
 	return 0;
 }
-TEST_SUITE(pipe_tests,
-           "A suite of tests for pipes. We are focusing on correctness, not performance."
-)
-		{
-				&test_pipe_open,
-				&test_pipe_fails_on_exhausted_fid,
-				&test_pipe_close_reader,
-				&test_pipe_close_writer,
-				&test_pipe_single_producer,
-				&test_pipe_multi_producer,
-				NULL
-		};
+TEST_SUITE(pipe_tests, "A suite of tests for pipes. We are focusing on correctness, not performance.") {
+		&test_pipe_open,
+		&test_pipe_fails_on_exhausted_fid,
+		&test_pipe_close_reader,
+		&test_pipe_close_writer,
+		&test_pipe_single_producer,
+		&test_pipe_multi_producer,
+		NULL
+};
 /*********************************************
  *
  *
