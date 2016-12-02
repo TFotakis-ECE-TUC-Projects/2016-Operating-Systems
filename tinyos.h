@@ -464,6 +464,7 @@ typedef struct pipe_s {
 int Pipe(pipe_t *pipe);
 /*Our edits*/
 #define BUFFER_SIZE (8*1024)
+/*
 typedef struct pipe_control_block{
 	pipe_t *pipe;
 	CondVar cvRead;
@@ -472,6 +473,7 @@ typedef struct pipe_control_block{
 	int readPos;
 	int writePos;
 }PipeCB;
+*/
 int pipe_read(void *pipeCB, char *buf, unsigned int size);
 int pipe_write(void *pipeCB, const char *buf, unsigned int size);
 int pipe_closeReader(void *pipeCB);
@@ -679,7 +681,7 @@ typedef struct procinfo {
   Each procinfo structure contains information pertaining to some
   used PCB (active or zombie) during the time of the stream.
 
-  There is no guarantee of the timeliness of the information.
+  There is no guarantee of the timelines of the information.
   A best-effort approach to return relevant system information is
   made.
 

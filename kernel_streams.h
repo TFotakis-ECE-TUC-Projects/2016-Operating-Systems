@@ -2,7 +2,6 @@
 #define __KERNEL_STREAMS_H
 #include "tinyos.h"
 #include "kernel_dev.h"
-
 /**
 	@file kernel_streams.h
 	@brief Support for I/O streams.
@@ -28,7 +27,6 @@
 
 	@{
 */
-
 /** @brief The file control block.
 
 	A file control block provides a uniform object to the
@@ -109,8 +107,5 @@ void FCB_unreserve(size_t num, Fid_t *fid, FCB **fcb);
 	@returns a pointer to the corresponding FCB, or NULL.
  */
 FCB *get_fcb(Fid_t fid);
-
-
 /** @} */
-
 #endif

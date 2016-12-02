@@ -1,7 +1,15 @@
 #include "tinyos.h"
 #include "kernel_streams.h"
 #include "kernel_cc.h"
-
+typedef struct pipe_control_block{
+	pipe_t *pipe;
+	FCB *readerFCB, *writerFCB;
+	CondVar cvRead;
+	CondVar cvWrite;
+	char buffer[BUFFER_SIZE];
+	int readPos;
+	int writePos;
+}PipeCB;
 file_ops readFuncs = {
 		.Open = NULL,
 		.Read = pipe_read,
@@ -20,6 +28,7 @@ int Pipe(pipe_t *pipe) {
 	Mutex_Lock(&kernel_mutex);
 	if (!FCB_reserve(2, fid, fcb)) {
 		Mutex_Unlock(&kernel_mutex);
+		MSG("Not reserved fids \n");
 		return -1;
 	}
 	pipe->read = fid[0];
@@ -30,31 +39,33 @@ int Pipe(pipe_t *pipe) {
 	pipeCB->cvRead = COND_INIT;
 	pipeCB->readPos = 0;
 	pipeCB->writePos = 0;
+	pipeCB->readerFCB = fcb[0];
+	pipeCB->writerFCB = fcb[1];
 	fcb[0]->streamobj = pipeCB;
 	fcb[1]->streamobj = pipeCB;
 	fcb[0]->streamfunc = &readFuncs;
 	fcb[1]->streamfunc = &writeFuncs;
-	FCB_incref(fcb[0]);
-	FCB_incref(fcb[1]);
 	Mutex_Unlock(&kernel_mutex);
 	return 0;
 }
 int pipe_read(void *pipeCB, char *buf, unsigned int size) {
 	PipeCB *pipecb = (PipeCB *) pipeCB;
-	uint count = 0;
+	if (pipecb->writerFCB->refcount == 0 && pipecb->readPos == pipecb->writePos) {
+		return 0;
+	}
+	uint count;
 	for (count = 0; count < size; count++) {
-		while (pipecb->writePos == pipecb->readPos && get_fcb(pipecb->pipe->write) != NULL) {
-			MSG("GT DEN PERIMENO???\n");
+		while (pipecb->writePos == pipecb->readPos && pipecb->writerFCB->refcount != 0) {
 			Cond_Signal(&pipecb->cvWrite);
 			Cond_Wait(&kernel_mutex, &pipecb->cvRead);
+			Mutex_Unlock(&kernel_mutex);
 		}
-		if (get_fcb(pipecb->pipe->write) == NULL && pipecb->readPos == pipecb->writePos) {
-			pipe_closeReader(pipecb);
-//			MSG("EXO KLEISTO WRITER kai kleino me count=%d kai readPos=%d kai writePos=%d\n",count,pipecb->readPos,pipecb->writePos);
-			return 0;
+		if (pipecb->readPos == pipecb->writePos) {
+			return count;
 		}
 		buf[count] = pipecb->buffer[pipecb->readPos];
 		pipecb->readPos = (pipecb->readPos + 1) % BUFFER_SIZE;
+		Cond_Signal(&pipecb->cvWrite);
 	}
 	Cond_Signal(&pipecb->cvWrite);
 	return count;
@@ -63,33 +74,33 @@ int pipe_write(void *pipeCB, const char *buf, unsigned int size) {
 	PipeCB *pipecb = (PipeCB *) pipeCB;
 	uint count;
 	for (count = 0; count < size; count++) {
-		while ((pipecb->writePos + 1) % BUFFER_SIZE == pipecb->readPos && get_fcb(pipecb->pipe->read) != NULL) {
+		while ((pipecb->writePos + 1) % BUFFER_SIZE == pipecb->readPos && pipecb->readerFCB->refcount != 0) {
 			Cond_Signal(&pipecb->cvRead);
 			Cond_Wait(&kernel_mutex, &pipecb->cvWrite);
+			Mutex_Unlock(&kernel_mutex);
 		}
-		if (get_fcb(pipecb->pipe->read) == NULL) {
-//			MSG("CLOSED READER\n");
-			pipe_closeWriter(pipecb);
+		if (pipecb->readerFCB->refcount==0) {
 			return -1;
 		}
 		pipecb->buffer[pipecb->writePos] = buf[count];
 		pipecb->writePos = (pipecb->writePos + 1) % BUFFER_SIZE;
+		Cond_Signal(&pipecb->cvRead);
 	}
 	Cond_Signal(&pipecb->cvRead);
 	return count;
 }
 int pipe_closeReader(void *pipeCB) {
-//	FCB *fcb = get_fcb(((PipeCB*)pipeCB)->pipe->read);
-//	FCB_unreserve(1,&((PipeCB*)pipeCB)->pipe->read, &fcb);
-//	free(pipeCB);
-//	MSG("KLEINO READER\n");
+	PipeCB *pipecb = (PipeCB *) pipeCB;
+	if(pipecb->writerFCB->refcount==0){
+		free(pipeCB);
+	}
 	return 0;
 }
 int pipe_closeWriter(void *pipeCB) {
-//	FCB *fcb = get_fcb(((PipeCB*)pipeCB)->pipe->write);
-//	FCB_unreserve(1,&((PipeCB*)pipeCB)->pipe->write, &fcb);
-//	free(pipeCB);
-//	MSG("KLEINO WRITER\n");
+	PipeCB *pipecb = (PipeCB *) pipeCB;
+	if(pipecb->readerFCB->refcount==0){
+		free(pipeCB);
+	}
 	return 0;
 }
 int dummyRead(void *pipeCB, char *buf, unsigned int size) {

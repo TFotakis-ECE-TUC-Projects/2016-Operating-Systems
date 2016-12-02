@@ -759,7 +759,6 @@ int data_producer(int argl, void *args) {
 	while (nbytes > 0) {
 		unsigned int n = (nbytes < 32768) ? nbytes : 32768;
 		int rc = Write(1, buffer, n);
-		MSG("rc=%d\n",rc);
 		assert(rc > 0);
 		nbytes -= rc;
 	}
@@ -781,13 +780,11 @@ int data_consumer(int argl, void *args) {
 		count += rc;
 	}
 	ASSERT(count == nbytes);
-	MSG("Count=%d nbytes=%d",count,nbytes);
 	return 0;
 }
 BOOT_TEST(test_pipe_single_producer, "Test blocking in the pipe by a single producer single consumer sending 10Mbytes of data.") {
 	pipe_t pipe;
 	ASSERT(Pipe(&pipe) == 0);
-	MSG("pipe.read=%d kai pipe.write=%d\n",pipe.read,pipe.write);
 	/* First, make pipe.read be zero. We cannot just Dup, because we may close pipe.write */
 	if (pipe.read != 0) {
 		if (pipe.write == 0) {
@@ -863,10 +860,6 @@ TEST_SUITE(pipe_tests, "A suite of tests for pipes. We are focusing on correctne
  *
  *
  *********************************************/
-
-
-
-
 void connect_sockets(Fid_t sock1, Fid_t lsock, Fid_t *sock2, port_t port) {
 	int accept_thread(int argl, void *args) {
 		*sock2 = Accept(lsock);

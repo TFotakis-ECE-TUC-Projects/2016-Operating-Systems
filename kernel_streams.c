@@ -4,7 +4,6 @@
 #include "kernel_streams.h"
 #include "kernel_sched.h"
 #include "kernel_proc.h"
-
 #define MAX_FILES MAX_PROC
 FCB FT[MAX_FILES];
 rlnode FCB_freelist;
