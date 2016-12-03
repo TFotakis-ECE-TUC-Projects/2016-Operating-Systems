@@ -10,7 +10,6 @@
 #include "symposium.h"
 #include "bios.h"
 #include "util.h"
-
 int Shell(size_t, const char **);
 int RunTerm(size_t, const char **);
 int ListPrograms(size_t, const char **);
@@ -306,15 +305,11 @@ int ListPrograms(size_t argc, const char **argv) {
 	}
 	return 0;
 }
-
-
-
 /*************************************
 
 	A remote server
 
 ***************************************/
-
 #define REMOTE_SERVER_DEFAULT_PORT 20
 /*
   The server's "global variables".
@@ -570,11 +565,9 @@ static int rsrv_client(int sock, void *__globals) {
 	Mutex_Unlock(&GS(mx));
 	return 0;
 }
-
 /*********************
    the client program
 ************************/
-
 /* helper for RemoteClient */
 static void send_message(Fid_t sock, void *buf, size_t len) {
 	size_t count = 0;
@@ -622,8 +615,6 @@ int RemoteClient(size_t argc, const char **argv) {
 	A very simple shell for tinyos
 
 ***************************************/
-
-
 int process_builtin(int argc, const char **argv) {
 	if (strcmp(argv[0], "?") == 0) {
 		printf("Type 'help' for help, 'exit' to quit.\n");

@@ -117,6 +117,13 @@ Pid_t Exec(Task call, int argl, void *args) {
 	}
 	/*Our edits*/
 	/*Initializing out new pcb properties*/
+	newproc->main_task = call;
+	newproc->argl = argl;
+	if (args != NULL) {
+		newproc->args = malloc(argl);
+		memcpy(newproc->args, args, argl);
+	} else
+		newproc->args = NULL;
 	newproc->threads_counter = 0;
 	newproc->condVar = COND_INIT;
 	/*Initializing new ptcb*/
@@ -260,23 +267,29 @@ void Exit(int exitval) {
 	sleep_releasing(EXITED, &kernel_mutex);
 }
 typedef struct info_control_block {
-	char buffer[MAX_PROC*sizeof(procinfo)];
+	char buffer[MAX_PROC * sizeof(procinfo)];
 	uint readPos;
-} infoCB;
-int sysinfo_read(void *fid, char *buf, unsigned int size) {
-	FCB *fcb = get_fcb((Fid_t)fid);
+} InfoCB;
+int sysinfo_read(void *infoCB, char *buf, unsigned int size) {
+	InfoCB *infocb = (InfoCB *) infoCB;
+//	FCB *fcb = get_fcb(*infocb);
 	uint count;
-	for(count=0;count<size && ((infoCB*)fcb->streamobj)->readPos<MAX_PROC;count++){
-		buf[count] = ((infoCB*)fcb->streamobj)->buffer[((infoCB*)fcb->streamobj)->readPos];
-		((infoCB*)fcb->streamobj)->readPos++;
+	for (count = 0; count < size && infocb->readPos < MAX_PROC; count++) {
+		buf[count] = infocb->buffer[infocb->readPos];
+		infocb->readPos++;
 	}
+//	MSG("it reads\n");
 	return count;
+}
+int sysinfo_close(void *infoCB) {
+	free(infoCB);
+	return 0;
 }
 file_ops sysinfo_funcs = {
 		.Open = NULL,
 		.Read = sysinfo_read,
 		.Write = NULL,
-		.Close = NULL
+		.Close = sysinfo_close
 };
 Fid_t OpenInfo() {
 	Fid_t fid;
@@ -284,23 +297,25 @@ Fid_t OpenInfo() {
 	Mutex_Lock(&kernel_mutex);
 	if (!FCB_reserve(1, &fid, &fcb)) {
 		Mutex_Unlock(&kernel_mutex);
-		MSG("Not reserved fids \n");
 		return NOFILE;
 	}
-	fcb->streamobj = xmalloc(sizeof(infoCB));
-	((infoCB *) fcb->streamobj)->readPos = 0;
+	fcb->streamobj = xmalloc(sizeof(InfoCB));
+	((InfoCB *) fcb->streamobj)->readPos = 0;
+	fcb->streamfunc = &sysinfo_funcs;
 	procinfo *info = (procinfo *) xmalloc(sizeof(procinfo));
-	for(int i=0;i<MAX_PROC;i++){
-		PCB pcb = PT[i];
-		info->pid = (Pid_t) &pcb;
-		info->ppid = (Pid_t) &pcb.parent;
-		info->alive = pcb.pstate == ALIVE;
-		info->thread_count = (unsigned long) pcb.threads_counter;
-		info->main_task = pcb.PTCB_list.next->ptcb->task;
-		info->argl = pcb.PTCB_list.next->ptcb->argl;
-//		info->args = pcb.PTCB_list.next->ptcb->args;
-		memcpy(info->args,pcb.PTCB_list.next->ptcb->args,sizeof(pcb.PTCB_list.next->ptcb->args));
-		memcpy(((infoCB *) fcb->streamobj)->buffer, info, sizeof(info));
+	for (int i = 0; i < MAX_PROC; i++) {
+		PCB *pcb = &PT[i];
+		info->pid = get_pid(&PT[i]);
+		info->ppid = get_pid(pcb->parent);
+		info->alive = pcb->pstate == ALIVE;
+		info->thread_count = (unsigned long) pcb->threads_counter;
+		info->main_task = pcb->main_task;
+		info->argl = pcb->argl;
+		for (int i = 0; i < info->argl; i++) {
+			info->args[i] = ((char*)pcb->args)[i];
+		}
+		memcpy(&(((InfoCB *) fcb->streamobj)->buffer[i * sizeof(procinfo)]), info, sizeof(procinfo));
 	}
+	Mutex_Unlock(&kernel_mutex);
 	return fid;
 }

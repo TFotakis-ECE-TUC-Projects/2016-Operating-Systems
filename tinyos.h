@@ -463,7 +463,7 @@ typedef struct pipe_s {
 */
 int Pipe(pipe_t *pipe);
 /*Our edits*/
-#define BUFFER_SIZE (8*1024)
+#define BUFFER_SIZE (16*1024)
 /*
 typedef struct pipe_control_block{
 	pipe_t *pipe;

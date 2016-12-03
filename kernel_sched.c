@@ -4,10 +4,8 @@
 #include "kernel_cc.h"
 #include "kernel_sched.h"
 #include "kernel_proc.h"
-
 #ifndef NVALGRIND
 #include <valgrind/valgrind.h>
-
 #endif
 /*
    The thread layout.

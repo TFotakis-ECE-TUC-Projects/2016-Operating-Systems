@@ -1,6 +1,5 @@
 #ifndef __KERNEL_PROC_H
 #define __KERNEL_PROC_H
-
 /**
   @file kernel_proc.h
   @brief The process table and process management.
@@ -14,10 +13,8 @@
 
   @{
 */
-
 #include "tinyos.h"
 #include "kernel_sched.h"
-
 /**
   @brief PID state
 
@@ -37,6 +34,9 @@ typedef enum pid_state_e {
 typedef struct process_control_block {
 	pid_state pstate;      /**< The pid state for this PCB */
 	PCB *parent;            /**< Parent's pcb. */
+	Task main_task;
+	int argl;
+	void *args;
 	int exitval;            /**< The exit value */
 	rlnode children_list;   /**< List of children */
 	rlnode exited_list;     /**< List of exited children */
@@ -48,6 +48,7 @@ typedef struct process_control_block {
 	rlnode PTCB_list;     /**< The threads list */
 	CondVar condVar;
 	int threads_counter;
+
 } PCB;
 typedef struct process_thread_control_block {
 	uint refcount;            /**< @brief Reference counter. */

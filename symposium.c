@@ -19,14 +19,12 @@ void adjust_symposium(symposium_t *symp, int dBASE, int dGAP) {
 /* We use the recursive definition of Fibonacci numbers, implemented by the routines below,
   to "burn" CPU cycles. The complexity of the routine is exponential in n.
 */
-
 int fiborand(int fmin, int fmax) { return lrand48() % (fmax - fmin + 1) + fmin; }
 unsigned int fibo(unsigned int n) /* Very slow routine */
 {
 	if (n < 2) { return n; }
 	else { return fibo(n - 1) + fibo(n - 2); }
 }
-
 /*
   Dining Philosophers.
 
