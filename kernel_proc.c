@@ -308,11 +308,11 @@ Fid_t OpenInfo() {
 		info->pid = get_pid(&PT[i]);
 		info->ppid = get_pid(pcb->parent);
 		info->alive = pcb->pstate == ALIVE;
-		info->thread_count = (unsigned long) pcb->threads_counter;
+		info->thread_count = (unsigned long) (info->alive ? pcb->threads_counter + 1 : 0);
 		info->main_task = pcb->main_task;
 		info->argl = pcb->argl;
-		for (int i = 0; i < info->argl; i++) {
-			info->args[i] = ((char*)pcb->args)[i];
+		for (int j = 0; j < info->argl; j++) {
+			info->args[j] = ((char *) pcb->args)[j];
 		}
 		memcpy(&(((InfoCB *) fcb->streamobj)->buffer[i * sizeof(procinfo)]), info, sizeof(procinfo));
 	}
