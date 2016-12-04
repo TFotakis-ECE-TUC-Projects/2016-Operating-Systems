@@ -269,16 +269,14 @@ void Exit(int exitval) {
 typedef struct info_control_block {
 	char buffer[MAX_PROC * sizeof(procinfo)];
 	uint readPos;
+	uint writePos;
 } InfoCB;
 int sysinfo_read(void *infoCB, char *buf, unsigned int size) {
 	InfoCB *infocb = (InfoCB *) infoCB;
-//	FCB *fcb = get_fcb(*infocb);
 	uint count;
-	for (count = 0; count < size && infocb->readPos < MAX_PROC; count++) {
+	for (count = 0; count < size && infocb->readPos < infocb->writePos; count++, infocb->readPos++) {
 		buf[count] = infocb->buffer[infocb->readPos];
-		infocb->readPos++;
 	}
-//	MSG("it reads\n");
 	return count;
 }
 int sysinfo_close(void *infoCB) {
@@ -299,22 +297,28 @@ Fid_t OpenInfo() {
 		Mutex_Unlock(&kernel_mutex);
 		return NOFILE;
 	}
-	fcb->streamobj = xmalloc(sizeof(InfoCB));
+	InfoCB *infoCB = xmalloc(sizeof(InfoCB));
+	infoCB->readPos = 0;
+	infoCB->writePos = 0;
+	fcb->streamobj = infoCB;
 	((InfoCB *) fcb->streamobj)->readPos = 0;
 	fcb->streamfunc = &sysinfo_funcs;
 	procinfo *info = (procinfo *) xmalloc(sizeof(procinfo));
 	for (int i = 0; i < MAX_PROC; i++) {
 		PCB *pcb = &PT[i];
-		info->pid = get_pid(&PT[i]);
-		info->ppid = get_pid(pcb->parent);
-		info->alive = pcb->pstate == ALIVE;
-		info->thread_count = (unsigned long) (info->alive ? pcb->threads_counter + 1 : 0);
-		info->main_task = pcb->main_task;
-		info->argl = pcb->argl;
-		for (int j = 0; j < info->argl; j++) {
-			info->args[j] = ((char *) pcb->args)[j];
+		if (pcb->pstate == ALIVE) {
+			info->pid = get_pid(&PT[i]);
+			info->ppid = get_pid(pcb->parent);
+			info->alive = pcb->pstate == ALIVE;
+			info->thread_count = (unsigned long) (info->alive ? pcb->threads_counter + 1 : 0);
+			info->main_task = pcb->main_task;
+			info->argl = pcb->argl;
+			for (int j = 0; j < info->argl; j++) {
+				info->args[j] = ((char *) pcb->args)[j];
+			}
+			memcpy(&(((InfoCB *) fcb->streamobj)->buffer[i * sizeof(procinfo)]), info, sizeof(procinfo));
+			infoCB->writePos += sizeof(procinfo);
 		}
-		memcpy(&(((InfoCB *) fcb->streamobj)->buffer[i * sizeof(procinfo)]), info, sizeof(procinfo));
 	}
 	Mutex_Unlock(&kernel_mutex);
 	return fid;
