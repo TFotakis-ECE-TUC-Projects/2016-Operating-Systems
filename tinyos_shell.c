@@ -572,6 +572,7 @@ static int rsrv_client(int sock, void *__globals) {
 static void send_message(Fid_t sock, void *buf, size_t len) {
 	size_t count = 0;
 	while (count < len) {
+		MSG("Mpika\n");
 		int rc = Write(sock, buf + count, len - count);
 		if (rc < 1) { break; } /* Error or End of stream */
 		count += rc;

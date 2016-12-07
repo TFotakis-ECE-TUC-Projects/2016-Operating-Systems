@@ -782,7 +782,8 @@ int data_consumer(int argl, void *args) {
 	ASSERT(count == nbytes);
 	return 0;
 }
-BOOT_TEST(test_pipe_single_producer, "Test blocking in the pipe by a single producer single consumer sending 10Mbytes of data.") {
+BOOT_TEST(test_pipe_single_producer,
+          "Test blocking in the pipe by a single producer single consumer sending 10Mbytes of data.") {
 	pipe_t pipe;
 	ASSERT(Pipe(&pipe) == 0);
 	/* First, make pipe.read be zero. We cannot just Dup, because we may close pipe.write */
@@ -810,7 +811,8 @@ BOOT_TEST(test_pipe_single_producer, "Test blocking in the pipe by a single prod
 	WaitChild(NOPROC, NULL);
 	return 0;
 }
-BOOT_TEST(test_pipe_multi_producer, "Test blocking in the pipe by 10 producers and single consumer sending 10Mbytes of data.") {
+BOOT_TEST(test_pipe_multi_producer,
+          "Test blocking in the pipe by 10 producers and single consumer sending 10Mbytes of data.") {
 	pipe_t pipe;
 	ASSERT(Pipe(&pipe) == 0);
 
@@ -1295,7 +1297,10 @@ TEST_SUITE(socket_tests,
 				&test_socket_single_producer,
 				&test_socket_multi_producer,
 				&test_shudown_read,
+//		        -----------------------------------------------------------------------------------------------------------------------------------------
 				&test_shudown_write,
+//				--------------------------------------------------------------PROSOXIIIIIIIIIII PROSORINO KLEISIMO ------------------
+//                ---------------------------------------------------------------------------------------------------------------------------------------
 				NULL
 		};
 /*********************************************
@@ -1307,11 +1312,6 @@ TEST_SUITE(socket_tests,
  *
  *
  *********************************************/
-
-
-
-
-
 unsigned int timestamp = 0;
 unsigned int get_timestamp() {
 	return __atomic_fetch_add(&timestamp, 1, __ATOMIC_SEQ_CST);
@@ -1417,11 +1417,6 @@ TEST_SUITE(concurrency_tests,
 				&test_parallelism,
 				NULL
 		};
-
-
-
-
-
 /*********************************************
  *
  *
@@ -1431,11 +1426,6 @@ TEST_SUITE(concurrency_tests,
  *
  *
  *********************************************/
-
-
-
-
-
 BOOT_TEST(test_input_concurrency,
           "Test that input from one terminal does not obstruct input from other terminals.",
           .minimum_terminals = 2
@@ -1534,10 +1524,6 @@ TEST_SUITE(io_tests,
 				&test_term_input_driver_interrupt,
 				NULL
 		};
-
-
-
-
 /*********************************************
  *
  *
@@ -1547,10 +1533,6 @@ TEST_SUITE(io_tests,
  *
  *
  *********************************************/
-
-
-
-
 TEST_SUITE(all_tests,
            "A suite containing all tests.")
 		{
@@ -1562,9 +1544,6 @@ TEST_SUITE(all_tests,
 				&socket_tests,
 				NULL
 		};
-
-
-
 /****************************************************************************
  *
  *       U S E R    T E S T S
@@ -1574,8 +1553,6 @@ TEST_SUITE(all_tests,
  * You can then run your tests by
  *   ./validate_api user_tests
  ****************************************************************************/
-
-
 BARE_TEST(dummy_user_test,
           "A dummy test, feel free to edit it and copy it as needed."
 ) {
@@ -1593,6 +1570,3 @@ int main(int argc, char **argv) {
 	register_test(&user_tests);
 	return run_program(argc, argv, &all_tests);
 }
-
-
-

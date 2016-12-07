@@ -297,26 +297,25 @@ Fid_t OpenInfo() {
 		Mutex_Unlock(&kernel_mutex);
 		return NOFILE;
 	}
-	InfoCB *infoCB = xmalloc(sizeof(InfoCB));
+	InfoCB *infoCB = (InfoCB *) xmalloc(sizeof(InfoCB));
 	infoCB->readPos = 0;
 	infoCB->writePos = 0;
 	fcb->streamobj = infoCB;
-	((InfoCB *) fcb->streamobj)->readPos = 0;
 	fcb->streamfunc = &sysinfo_funcs;
 	procinfo *info = (procinfo *) xmalloc(sizeof(procinfo));
 	for (int i = 0; i < MAX_PROC; i++) {
 		PCB *pcb = &PT[i];
-		if (pcb->pstate == ALIVE) {
+		if (pcb->pstate == ALIVE || pcb->pstate == ZOMBIE) {
 			info->pid = get_pid(&PT[i]);
 			info->ppid = get_pid(pcb->parent);
 			info->alive = pcb->pstate == ALIVE;
-			info->thread_count = (unsigned long) (info->alive ? pcb->threads_counter + 1 : 0);
+			info->thread_count = (unsigned long) pcb->threads_counter + 1;
 			info->main_task = pcb->main_task;
 			info->argl = pcb->argl;
 			for (int j = 0; j < info->argl; j++) {
 				info->args[j] = ((char *) pcb->args)[j];
 			}
-			memcpy(&(((InfoCB *) fcb->streamobj)->buffer[i * sizeof(procinfo)]), info, sizeof(procinfo));
+			memcpy(&infoCB->buffer[infoCB->writePos], info, sizeof(procinfo));
 			infoCB->writePos += sizeof(procinfo);
 		}
 	}

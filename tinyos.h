@@ -425,11 +425,6 @@ int Close(Fid_t fd);
   - oldfd is not an open file.
  */
 int Dup2(Fid_t oldfd, Fid_t newfd);
-/*******************************************
- *
- * Pipes
- *
- *******************************************/
 /**
   @brief A pair of file ids, describing a pipe.
 
@@ -443,6 +438,13 @@ typedef struct pipe_s {
 	Fid_t read;     /**< The read end of the pipe */
 	Fid_t write;    /**< The write end of the pipe */
 } pipe_t;
+/*******************************************
+ *
+ * Pipes
+ *
+ *******************************************/
+typedef struct file_control_block FCB;        /**< @brief Forward declaration */
+void PipeNoReserving(pipe_t *pipe, Fid_t *fid, FCB **fcb);
 /**
   @brief Construct and return a pipe.
 
@@ -480,7 +482,6 @@ int pipe_closeReader(void *pipeCB);
 int pipe_closeWriter(void *pipeCB);
 int dummyRead(void *pipeCB, char *buf, unsigned int size);
 int dummyWrite(void *pipeCB, const char *buf, unsigned int size);
-
 /*******************************************
  *
  * Sockets (local)
@@ -491,6 +492,7 @@ int dummyWrite(void *pipeCB, const char *buf, unsigned int size);
 
   A socket port is an integer between 1 and @c MAX_PORT.
 */
+//------------------------------------------------------------------------SOCKETS--------------------------------------------------
 typedef int16_t port_t;
 /**
   @brief the maximum legal port
@@ -500,6 +502,12 @@ typedef int16_t port_t;
   @brief a null value for a port
 */
 #define NOPORT ((port_t)0)
+/*Our edits*/
+typedef enum SocketTypeEnum {
+	UNBOUND,
+	LISTENER,
+	PEER
+} SocketType;
 /**
   @brief Return a new socket bound on a port.
 
@@ -545,7 +553,7 @@ int Listen(Fid_t sock);
 
   It is possible (and desirable) to re-use the listening socket in multiple successive
   calls to Accept. This is a typical pattern: a thread blocks at Accept in a tight
-  loop, where each iteration creates new a connection,
+  loop, where each iteration creates a new connection,
   and then some thread takes over the connection for communication with the client.
 
   @param sock the socket to initialize as a listening socket
@@ -632,6 +640,7 @@ typedef enum {
        - the file id @c sock is not legal (a connected socket stream).
 */
 int ShutDown(Fid_t sock, shutdown_mode how);
+//-------------------------------------------------------------------------SYSINFO----------------------------------------------------
 /*******************************************
  *
  * System information
@@ -653,13 +662,9 @@ typedef struct procinfo {
 	Pid_t ppid;     /**< @brief The parent pid of the process.
 
                 This is equal to NOPROC for parentless procs. */
-
 	int alive;      /**< @brief Non-zero if process is alive, zero if process is zombie. */
-
 	unsigned long thread_count; /**< Current no of threads. */
-
 	Task main_task;  /**< @brief The main task of the process. */
-
 	int argl;        /**< @brief Argument length of main task.
 
             Note that this is the

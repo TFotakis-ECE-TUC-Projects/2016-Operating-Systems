@@ -287,6 +287,7 @@ typedef struct file_control_block FCB;        /**< @brief Forward declaration */
 typedef struct resource_list_node *rlnode_ptr;/**< @brief A convenience typedef */
 /*Our edits*/
 typedef struct process_thread_control_block PTCB;    /**< @brief Forward declaration */
+typedef struct listener_requests Request;
 /**
 	@brief List node
 */
@@ -309,6 +310,7 @@ typedef struct resource_list_node {
 		CCB *ccb;
 		DCB *dcb;
 		FCB *fcb;
+		Request *request;
 		void *obj;
 		rlnode_ptr node;
 		intptr_t num;

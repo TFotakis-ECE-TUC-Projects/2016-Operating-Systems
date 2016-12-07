@@ -23,15 +23,7 @@ file_ops writeFuncs = {
 		.Write = pipe_write,
 		.Close = pipe_closeWriter
 };
-int Pipe(pipe_t *pipe) {
-	Fid_t fid[2];
-	FCB *fcb[2];
-	Mutex_Lock(&kernel_mutex);
-	if (!FCB_reserve(2, fid, fcb)) {
-		Mutex_Unlock(&kernel_mutex);
-//		MSG("Not reserved fids \n");
-		return -1;
-	}
+void PipeNoReserving(pipe_t *pipe, Fid_t *fid, FCB **fcb) {
 	pipe->read = fid[0];
 	pipe->write = fid[1];
 	PipeCB *pipeCB = (PipeCB *) xmalloc(sizeof(PipeCB));
@@ -47,7 +39,16 @@ int Pipe(pipe_t *pipe) {
 	fcb[1]->streamobj = pipeCB;
 	fcb[0]->streamfunc = &readFuncs;
 	fcb[1]->streamfunc = &writeFuncs;
-
+}
+int Pipe(pipe_t *pipe) {
+	Fid_t fid[2];
+	FCB *fcb[2];
+	Mutex_Lock(&kernel_mutex);
+	if (!FCB_reserve(2, fid, fcb)) {
+		Mutex_Unlock(&kernel_mutex);
+		return -1;
+	}
+	PipeNoReserving(pipe, fid, fcb);
 	Mutex_Unlock(&kernel_mutex);
 	return 0;
 }
