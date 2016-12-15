@@ -444,7 +444,8 @@ typedef struct pipe_s {
  *
  *******************************************/
 typedef struct file_control_block FCB;        /**< @brief Forward declaration */
-void PipeNoReserving(pipe_t *pipe, Fid_t *fid, FCB **fcb);
+typedef struct pipe_control_block PipeCB;        /**< @brief Forward declaration */
+PipeCB *PipeNoReserving(pipe_t *pipe, Fid_t *fid, FCB **fcb);
 /**
   @brief Construct and return a pipe.
 
@@ -465,7 +466,8 @@ void PipeNoReserving(pipe_t *pipe, Fid_t *fid, FCB **fcb);
 */
 int Pipe(pipe_t *pipe);
 /*Our edits*/
-#define BUFFER_SIZE (16*1024)
+//#define BUFFER_SIZE (16*1024)
+#define BUFFER_SIZE (1*1024)
 /*
 typedef struct pipe_control_block{
 	pipe_t *pipe;

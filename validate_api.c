@@ -760,6 +760,7 @@ int data_producer(int argl, void *args) {
 		unsigned int n = (nbytes < 32768) ? nbytes : 32768;
 		int rc = Write(1, buffer, n);
 		assert(rc > 0);
+//		MSG("write rc=%d\n",rc);
 		nbytes -= rc;
 	}
 	Close(1);
@@ -778,6 +779,7 @@ int data_consumer(int argl, void *args) {
 		rc = Read(0, buffer, 16384);
 		assert(rc >= 0);
 		count += rc;
+//		MSG("read rc=%d\n",rc);
 	}
 	ASSERT(count == nbytes);
 	return 0;
@@ -1292,7 +1294,6 @@ TEST_SUITE(socket_tests,
 				&test_connect_fails_on_bad_socket,
 				&test_connect_fails_on_illegal_port,
 				&test_connect_fails_on_non_listened_port,
-				&test_connect_fails_on_timeout,
 				&test_socket_small_transfer,
 				&test_socket_single_producer,
 				&test_socket_multi_producer,
@@ -1301,6 +1302,7 @@ TEST_SUITE(socket_tests,
 				&test_shudown_write,
 //				--------------------------------------------------------------PROSOXIIIIIIIIIII PROSORINO KLEISIMO ------------------
 //                ---------------------------------------------------------------------------------------------------------------------------------------
+				&test_connect_fails_on_timeout,
 				NULL
 		};
 /*********************************************

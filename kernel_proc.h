@@ -15,6 +15,7 @@
 */
 #include "tinyos.h"
 #include "kernel_sched.h"
+
 /**
   @brief PID state
 
@@ -46,9 +47,8 @@ typedef struct process_control_block {
 	FCB *FIDT[MAX_FILEID];  /**< The fileid table of the process */
 	/*Our edits*/
 	rlnode PTCB_list;     /**< The threads list */
-	CondVar condVar;
 	int threads_counter;
-
+	CondVar condVar;
 } PCB;
 typedef struct process_thread_control_block {
 	uint refcount;            /**< @brief Reference counter. */
@@ -60,6 +60,7 @@ typedef struct process_thread_control_block {
 	int isDetached;
 	rlnode node;
 	int isExited;
+	CondVar condVar;
 } PTCB;
 /**
   @brief Initialize the process table.

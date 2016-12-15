@@ -26,10 +26,9 @@ Tid_t CreateThread(Task task, int argl, void *args) {
 	ptcb->task = task;
 	/* Copy the arguments to new storage, owned by the new process */
 	ptcb->argl = argl;
+	ptcb->condVar = COND_INIT;
 	if (args != NULL) {
 		ptcb->args = args;
-//		ptcb->args = malloc(sizeof(args));
-//		memcpy(ptcb->args, args, sizeof(args));
 	} else { ptcb->args = NULL; }
 	/*
 	  Create and wake up the thread for the main function. This must be the last thing
@@ -55,6 +54,7 @@ PTCB *FindPTCB(Tid_t tid) {
 	PTCB *ptcb = NULL;
 	for (int i = 0; i < length; i++) {
 		rlnode *tmp = rlist_pop_front(&CURPROC->PTCB_list);
+		assert(tmp != NULL);
 		assert(tmp->ptcb != NULL);
 		if (tmp->ptcb->thread == (TCB *) tid) {
 			ptcb = tmp->ptcb;
@@ -90,7 +90,7 @@ int ThreadJoin(Tid_t tid, int *exitval) {
 	else {
 		ptcb->refcount++;
 		while (!ptcb->isExited && !ptcb->isDetached) {
-			Cond_Wait(&kernel_mutex, &CURPROC->condVar);
+			Cond_Wait(&kernel_mutex, &ptcb->condVar);
 		}
 		if (ptcb->isDetached) {
 			returnVal = -1;
@@ -118,7 +118,7 @@ int ThreadDetach(Tid_t tid) {
 		returnVal = -1;
 	} else {
 		ptcb->isDetached = 1;
-		Cond_Broadcast(&CURPROC->condVar);
+		Cond_Broadcast(&ptcb->condVar);
 		returnVal = 0;
 	}
 	Mutex_Unlock(&kernel_mutex);
@@ -133,8 +133,10 @@ void ThreadExit(int exitval) {
 	PTCB *ptcb = ((PTCB *) ThreadSelf());
 	ptcb->isExited = 1;
 	ptcb->exitval = exitval;
+	Cond_Broadcast(&ptcb->condVar);
 	Cond_Broadcast(&CURPROC->condVar);
 	sleep_releasing(EXITED, &kernel_mutex);
+	Mutex_Unlock(&kernel_mutex);
 }
 /**
   @brief Awaken the thread, if it is sleeping.

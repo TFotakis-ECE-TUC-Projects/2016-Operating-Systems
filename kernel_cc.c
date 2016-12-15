@@ -65,7 +65,7 @@ void Mutex_Lock(Mutex *lock) {
   Pre-emption aware mutex.
   -------------------------
 
-  This mutex will act as a spinlock if preemption is off, and a
+  This mutex will act as a mx if preemption is off, and a
   yielding mutex if it is on.
 
  */

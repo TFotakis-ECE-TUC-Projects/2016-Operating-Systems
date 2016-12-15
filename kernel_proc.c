@@ -133,6 +133,7 @@ Pid_t Exec(Task call, int argl, void *args) {
 	ptcb->isDetached = 0;
 	ptcb->task = call;
 	ptcb->argl = argl;
+	ptcb->condVar = COND_INIT;
 	if (args != NULL) {
 		ptcb->args = malloc(argl);
 		memcpy(ptcb->args, args, argl);

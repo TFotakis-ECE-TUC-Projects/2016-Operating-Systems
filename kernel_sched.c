@@ -168,7 +168,7 @@ CCB cctx[MAX_CORES];
   The scheduler queue is implemented as a doubly linked list. The
   head and tail of this list are stored in  SCHED.
 */
-Mutex sched_spinlock = MUTEX_INIT;    /* spinlock for scheduler queue */
+Mutex sched_spinlock = MUTEX_INIT;    /* mx for scheduler queue */
 /* Interrupt handler for ALARM */
 void yield_handler() {
 	yield();
@@ -212,7 +212,7 @@ TCB *sched_queue_select() {
 void wakeup(TCB *tcb) {
 	/* Preemption off */
 	int oldpre = preempt_off;
-	/* To touch tcb->state, we must get the spinlock. */
+	/* To touch tcb->state, we must get the mx. */
 	Mutex_Lock(&tcb->state_spinlock);
 	assert(tcb->state == STOPPED || tcb->state == INIT);
 	tcb->state = READY;
