@@ -4,6 +4,8 @@
 typedef struct socket_control_block SCB;
 typedef struct listener_requests {
 	Fid_t fid;
+    FCB *fcb;
+    SCB *scb;
 	CondVar cv;
 	int isServed;
 } Request;
@@ -47,20 +49,26 @@ int socket_close(void *fid) {
 }
 int socket_read(void *tmpScb, char *buf, unsigned int size) {
 //	MSG("Socket read\n");
-	SCB *scb = (SCB *) tmpScb;
-	if (scb->socketType != PEER) {
+	Mutex_Lock(&kernel_mutex);
+    SCB *scb = (SCB *) tmpScb;
+    if (scb->socketType != PEER) {
+		Mutex_Unlock(&kernel_mutex);
 		MSG("Read from a non-peer socket\n");
 		return -1;
 	}
+	Mutex_Unlock(&kernel_mutex);
 	return pipe_read(scb->extraProps.peerProps->receiver, buf, size);
 }
 int socket_write(void *tmpScb, const char *buf, unsigned int size) {
 //	MSG("Socket write\n");
-	SCB *scb = (SCB *) tmpScb;
-	if (scb->socketType != PEER) {
-		MSG("Read from a non-peer socket\n");
+	Mutex_Lock(&kernel_mutex);
+    SCB *scb = (SCB *) tmpScb;
+    if (scb->socketType != PEER) {
+		MSG("Write from a non-peer socket\n");
+		Mutex_Unlock(&kernel_mutex);
 		return -1;
 	}
+	Mutex_Unlock(&kernel_mutex);
 	return pipe_write(scb->extraProps.peerProps->transmitter, buf, size);
 }
 file_ops socketFuncs = {
@@ -126,14 +134,14 @@ Fid_t Accept(Fid_t lsock) {
 	while (is_rlist_empty(&listenerSCB->extraProps.listenerProps->requests) && get_scb(lsock)) {
 		Cond_Wait(&kernel_mutex, &listenerSCB->extraProps.listenerProps->cv);
 	}
-	rlnode *requestNode = rlist_pop_front(&listenerSCB->extraProps.listenerProps->requests);
-	Request *request = requestNode->request;
-	if (!get_scb(lsock)) {
-		Mutex_Unlock(&kernel_mutex);
-		Cond_Signal(&request->cv);
-		return NOFILE;
-	}
-	Mutex_Unlock(&kernel_mutex);
+    rlnode *requestNode = rlist_pop_front(&listenerSCB->extraProps.listenerProps->requests);
+    Request *request = requestNode->request;
+    if (!get_scb(lsock)) {
+        Mutex_Unlock(&kernel_mutex);
+        Cond_Signal(&request->cv);
+        return NOFILE;
+    }
+    Mutex_Unlock(&kernel_mutex);
 	Fid_t peer1fid = Socket(NOPORT);
 	if (peer1fid == NOFILE) {
 		Cond_Signal(&request->cv);
@@ -141,7 +149,8 @@ Fid_t Accept(Fid_t lsock) {
 	}
 	Mutex_Lock(&kernel_mutex);
 	SCB *peer1 = get_scb(peer1fid);
-	SCB *peer2 = get_scb(request->fid);
+	SCB *peer2 = request->scb;
+//	SCB *peer2 = get_scb(request->fid);
 	peer1->extraProps.peerProps = (PeerProps *) xmalloc(sizeof(PeerProps));
 	peer2->extraProps.peerProps = (PeerProps *) xmalloc(sizeof(PeerProps));
 //	peer1->extraProps.peerProps->cv = COND_INIT;
@@ -153,11 +162,13 @@ Fid_t Accept(Fid_t lsock) {
 	fid[0] = peer1fid;
 	fid[1] = request->fid;
 	fcb[0] = get_fcb(peer1fid);
-	fcb[1] = get_fcb(request->fid);
+	fcb[1] = request->fcb;
+//	fcb[1] = get_fcb(request->fid);
 	PipeCB *pipeCB1 = PipeNoReserving(&pipe1, fid, fcb);
 	fid[0] = request->fid;
 	fid[1] = peer1fid;
-	fcb[0] = get_fcb(request->fid);
+	fcb[0] = request->fcb;
+//	fcb[0] = get_fcb(request->fid);
 	fcb[1] = get_fcb(peer1fid);
 	PipeCB *pipeCB2 = PipeNoReserving(&pipe2, fid, fcb);
 
@@ -187,13 +198,17 @@ int Connect(Fid_t sock, port_t port, timeout_t timeout) {
 	request->cv = COND_INIT;
 	request->isServed = 0;
 	request->fid = sock;
+    request->fcb = get_fcb(sock);
+    request->scb = get_scb(sock);
+
 	rlnode node;
 	rlnode_init(&node, request);
 	rlist_push_back(&Portmap[port]->extraProps.listenerProps->requests, &node);
 	Cond_Signal(&Portmap[port]->extraProps.listenerProps->cv);
 //	MSG("Sending request\n");
-//	MSG("Connect before condwait\n");
+	MSG("Connect before condwait\n");
 	Cond_Wait(&kernel_mutex, &request->cv);
+    MSG("Connect sockType=%d\n",scb->socketType);
 //	MSG("returned\n");
 	Mutex_Unlock(&kernel_mutex);
 	return request->isServed - 1;
