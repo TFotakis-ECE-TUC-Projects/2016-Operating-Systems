@@ -1,13 +1,11 @@
 #include "tinyos.h"
 #include "kernel_streams.h"
 #include "kernel_cc.h"
-
 typedef struct pipe_control_block {
 	pipe_t *pipe;
 	FCB *readerFCB, *writerFCB;
 	CondVar cvRead;
 	CondVar cvWrite;
-	Mutex mx;
 	char buffer[BUFFER_SIZE];
 	int readPos;
 	int writePos;
@@ -35,7 +33,6 @@ PipeCB *PipeNoReserving(pipe_t *pipe, Fid_t *fid, FCB **fcb) {
 	pipeCB->writePos = 0;
 	pipeCB->readerFCB = fcb[0];
 	pipeCB->writerFCB = fcb[1];
-	pipeCB->mx = MUTEX_INIT;
 	return pipeCB;
 }
 int Pipe(pipe_t *pipe) {
@@ -56,77 +53,57 @@ int Pipe(pipe_t *pipe) {
 }
 int pipe_read(void *pipeCB, char *buf, unsigned int size) {
 	PipeCB *pipecb = (PipeCB *) pipeCB;
-	Mutex_Lock(&pipecb->mx);
+	Mutex_Lock(&kernel_mutex);
 	if (pipecb->writerFCB->refcount == 0 && pipecb->readPos == pipecb->writePos) {
-		Mutex_Unlock(&pipecb->mx);
+		Mutex_Unlock(&kernel_mutex);
 		return 0;
 	}
 	uint count;
 	for (count = 0; count < size; count++, pipecb->readPos = (pipecb->readPos + 1) % BUFFER_SIZE) {
 		while (pipecb->writePos == pipecb->readPos && pipecb->writerFCB->refcount != 0) {
 			Cond_Broadcast(&pipecb->cvWrite);
-//			MSG("pipe read waiting\n");
-			Cond_Wait(&pipecb->mx, &pipecb->cvRead);
-//			MSG("pipe read wakeup\n");
+			Cond_Wait(&kernel_mutex, &pipecb->cvRead);
 		}
 		if (pipecb->writePos == pipecb->readPos && pipecb->writerFCB->refcount == 0) {
-			Mutex_Unlock(&pipecb->mx);
+			Mutex_Unlock(&kernel_mutex);
 			return count;
 		}
 		buf[count] = pipecb->buffer[pipecb->readPos];
 		Cond_Broadcast(&pipecb->cvWrite);
 	}
-	Mutex_Unlock(&pipecb->mx);
+	Mutex_Unlock(&kernel_mutex);
 	Cond_Broadcast(&pipecb->cvWrite);
 	return count;
 }
 int pipe_write(void *pipeCB, const char *buf, unsigned int size) {
 	PipeCB *pipecb = (PipeCB *) pipeCB;
-	Mutex_Lock(&pipecb->mx);
+	Mutex_Lock(&kernel_mutex);
 	uint count;
 	for (count = 0; count < size; count++, pipecb->writePos = (pipecb->writePos + 1) % BUFFER_SIZE) {
 		while ((pipecb->writePos + 1) % BUFFER_SIZE == pipecb->readPos && pipecb->readerFCB->refcount != 0) {
 			Cond_Broadcast(&pipecb->cvRead);
-//			MSG("pipe write waiting\n");
-			Cond_Wait(&pipecb->mx, &pipecb->cvWrite);
-//			MSG("pipe write wakeup\n");
+			Cond_Wait(&kernel_mutex, &pipecb->cvWrite);
 		}
 		if (pipecb->readerFCB->refcount == 0) {
-			Mutex_Unlock(&pipecb->mx);
+			Mutex_Unlock(&kernel_mutex);
 			return -1;
 		}
 		pipecb->buffer[pipecb->writePos] = buf[count];
 		Cond_Broadcast(&pipecb->cvRead);
 	}
-	Mutex_Unlock(&pipecb->mx);
+	Mutex_Unlock(&kernel_mutex);
 	Cond_Broadcast(&pipecb->cvRead);
 	return count;
 }
 int pipe_closeReader(void *pipeCB) {
 	PipeCB *pipecb = (PipeCB *) pipeCB;
-//	Mutex_Lock(&pipecb->mx);
-	MSG("close reader\n");
-	if (pipecb->writerFCB->refcount == 0) {
-		MSG("close pipe from reader\n");
-//		Mutex_Unlock(&pipecb->mx);
-		free(pipeCB);
-	} else {
-//		Mutex_Unlock(&pipecb->mx);
-	}
+	if (pipecb->writerFCB->refcount == 0)free(pipeCB);
 	Cond_Broadcast(&pipecb->cvWrite);
 	return 0;
 }
 int pipe_closeWriter(void *pipeCB) {
 	PipeCB *pipecb = (PipeCB *) pipeCB;
-//	Mutex_Lock(&pipecb->mx);
-	MSG("close writer\n");
-	if (pipecb->readerFCB->refcount == 0) {
-		MSG("Close pipe from writer\n");
-//		Mutex_Unlock(&pipecb->mx);
-		free(pipeCB);
-	} else {
-//		Mutex_Unlock(&pipecb->mx);
-	}
+	if (pipecb->readerFCB->refcount == 0)free(pipeCB);
 	Cond_Broadcast(&pipecb->cvRead);
 	return 0;
 }

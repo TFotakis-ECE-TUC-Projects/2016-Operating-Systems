@@ -1,7 +1,6 @@
 #include "tinyos.h"
 #include "kernel_cc.h"
 #include "kernel_streams.h"
-
 typedef struct socket_control_block SCB;
 typedef struct listener_requests {
 	Fid_t fid;
@@ -14,8 +13,8 @@ typedef struct listener_extra_properties {
 } ListenerProps;
 typedef struct peer_extra_properties {
 	PipeCB *receiver, *transmitter;
-	SCB *otherPeer;
-	CondVar cv;
+//	SCB *otherPeer;
+//	CondVar cv;
 } PeerProps;
 typedef struct socket_control_block {
 	Fid_t fid;
@@ -49,27 +48,33 @@ int socket_close(void *fid) {
 int socket_read(void *tmpScb, char *buf, unsigned int size) {
 //	MSG("Socket read\n");
 	SCB *scb = (SCB *) tmpScb;
-	if (scb->socketType != PEER)return 0;
+	if (scb->socketType != PEER) {
+		MSG("Read from a non-peer socket\n");
+		return -1;
+	}
 	return pipe_read(scb->extraProps.peerProps->receiver, buf, size);
 }
 int socket_write(void *tmpScb, const char *buf, unsigned int size) {
 //	MSG("Socket write\n");
 	SCB *scb = (SCB *) tmpScb;
-	if (scb->socketType != PEER)return -1;
+	if (scb->socketType != PEER) {
+		MSG("Read from a non-peer socket\n");
+		return -1;
+	}
 	return pipe_write(scb->extraProps.peerProps->transmitter, buf, size);
 }
-file_ops PeerFuncs = {
+file_ops socketFuncs = {
 		.Open = NULL,
 		.Read = socket_read,
 		.Write = socket_write,
 		.Close = socket_close
 };
-file_ops UnboundFuncs = {
+/*file_ops UnboundFuncs = {
 		.Open = NULL,
 		.Read = dummyRead,
 		.Write = dummyWrite,
 		.Close = socket_close
-};
+};*/
 SCB *get_scb(Fid_t sock) {
 	if (sock < 0 || sock > MAX_FILEID)return NULL;
 	FCB *fcb = get_fcb(sock);
@@ -92,7 +97,7 @@ Fid_t Socket(port_t port) {
 	scb->boundPort = port;
 	scb->refcount = 0;
 	fcb->streamobj = scb;
-	fcb->streamfunc = &UnboundFuncs;
+	fcb->streamfunc = &socketFuncs;
 	Mutex_Unlock(&kernel_mutex);
 	return fid;
 }
@@ -135,51 +140,41 @@ Fid_t Accept(Fid_t lsock) {
 		return NOFILE;
 	}
 	Mutex_Lock(&kernel_mutex);
-
 	SCB *peer1 = get_scb(peer1fid);
 	SCB *peer2 = get_scb(request->fid);
-	get_fcb(peer1fid)->streamfunc = &PeerFuncs;
-	get_fcb(request->fid)->streamfunc = &PeerFuncs;
 	peer1->extraProps.peerProps = (PeerProps *) xmalloc(sizeof(PeerProps));
 	peer2->extraProps.peerProps = (PeerProps *) xmalloc(sizeof(PeerProps));
-	peer1->extraProps.peerProps->cv = COND_INIT;
-	peer2->extraProps.peerProps->cv = COND_INIT;
-	pipe_t pipe1, pipe2;
-//	Mutex_Unlock(&kernel_mutex);
+//	peer1->extraProps.peerProps->cv = COND_INIT;
+//	peer2->extraProps.peerProps->cv = COND_INIT;
 
+	pipe_t pipe1, pipe2;
 	Fid_t fid[2];
 	FCB *fcb[2];
 	fid[0] = peer1fid;
 	fid[1] = request->fid;
 	fcb[0] = get_fcb(peer1fid);
 	fcb[1] = get_fcb(request->fid);
-//	if (!FCB_reserve(2, fid, fcb)) {
-//		Mutex_Unlock(&kernel_mutex);
-//		MSG("No more fids in accept\n");
-//		return NOFILE;
-//	}
 	PipeCB *pipeCB1 = PipeNoReserving(&pipe1, fid, fcb);
-
 	fid[0] = request->fid;
 	fid[1] = peer1fid;
 	fcb[0] = get_fcb(request->fid);
 	fcb[1] = get_fcb(peer1fid);
 	PipeCB *pipeCB2 = PipeNoReserving(&pipe2, fid, fcb);
-//	Mutex_Lock(&kernel_mutex);
+
 	peer1->extraProps.peerProps->transmitter = pipeCB1;
 	peer1->extraProps.peerProps->receiver = pipeCB2;
 	peer2->extraProps.peerProps->transmitter = pipeCB2;
 	peer2->extraProps.peerProps->receiver = pipeCB1;
-	peer1->extraProps.peerProps->otherPeer = peer2;
-	peer2->extraProps.peerProps->otherPeer = peer1;
 	peer1->socketType = PEER;
 	peer2->socketType = PEER;
 	request->isServed = 1;
 	Mutex_Unlock(&kernel_mutex);
 	Cond_Signal(&request->cv);
+	MSG("Request served\n");
 	return peer1fid;
 }
 int Connect(Fid_t sock, port_t port, timeout_t timeout) {
+//	MSG("Connecting starts\n");
 	Mutex_Lock(&kernel_mutex);
 	SCB *scb = get_scb(sock);
 	if (port < 0 || port >= MAX_PORT || Portmap[port] == NULL || Portmap[port]->socketType != LISTENER ||

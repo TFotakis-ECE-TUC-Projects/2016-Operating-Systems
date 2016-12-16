@@ -648,7 +648,7 @@ BOOT_TEST(test_create_join_thread,
 }
 BOOT_TEST(test_exit_many_threads, "Test that a process thread calling Exit will clean up correctly.") {
 	int task(int argl, void *args) {
-		fibo(40);//Sadly for value 45 we have timeout failure caused from the excess time of the fibo(45) calculation
+		fibo(35);//Sadly for value 45 we have timeout failure caused from the excess time of the fibo(45) calculation
 		return 2;
 	}
 	int mthread(int argl, void *args) {
