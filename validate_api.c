@@ -1169,7 +1169,6 @@ BOOT_TEST(test_socket_single_producer,
 	ASSERT(Exec(data_producer, sizeof(N), &N) != NOPROC);
 	Close(0);
 	Close(1);
-//	MSG("Closed\n");
 	WaitChild(NOPROC, NULL);
 	WaitChild(NOPROC, NULL);
 	return 0;
