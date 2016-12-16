@@ -1,7 +1,6 @@
 #include "tinyos.h"
 #include "kernel_cc.h"
 #include "kernel_streams.h"
-
 typedef struct socket_control_block SCB;
 typedef struct listener_requests {
     Fid_t fid;
@@ -30,7 +29,6 @@ typedef struct socket_control_block {
         PeerProps *peerProps;
     } extraProps;
 } SCB;
-
 /*file_ops UnboundFuncs = {
 		.Open = NULL,
 		.Read = dummyRead,
@@ -43,26 +41,18 @@ SCB *get_scb(Fid_t sock) {
     if (fcb == NULL)return NULL;
     return (SCB *) fcb->streamobj;
 }
-
 SCB *Portmap[MAX_PORT + 1] = {NULL};
-
 int socket_close(void *tmpSCB) {
-    SCB *scb = (SCB*) tmpSCB;
-    if(scb==NULL){
+    SCB *scb = (SCB *) tmpSCB;
+    if (scb == NULL) {
         Mutex_Unlock(&kernel_mutex);
         return -1;
     }
-//    MSG("ref count receiver read: %d\n", scb->extraProps.peerProps->receiver->readerFCB->refcount);
-//    MSG("ref count receiver write: %d\n", scb->extraProps.peerProps->receiver->writerFCB->refcount);
-//    MSG("ref count transmitter read: %d\n", scb->extraProps.peerProps->transmitter->readerFCB->refcount);
-//    MSG("ref count transmitter write: %d\n", scb->extraProps.peerProps->transmitter->writerFCB->refcount);
-    assert(scb!=NULL);
+    assert(scb != NULL);
     switch (scb->socketType) {
         case UNBOUND:
-//            MSG("Close unbound socket\n");
             break;
         case LISTENER:
-//            MSG("Close listener socket\n");
             Portmap[scb->boundPort] = NULL;
             while (!is_rlist_empty(&scb->extraProps.listenerProps->requests)) {
                 rlnode *reqNode = rlist_pop_front(&scb->extraProps.listenerProps->requests);
@@ -70,51 +60,38 @@ int socket_close(void *tmpSCB) {
             }
             break;
         case PEER:
-//            MSG("Close peer socket\n");
-            Cond_Broadcast(&scb->extraProps.peerProps->receiver->cvRead);
-            Cond_Broadcast(&scb->extraProps.peerProps->receiver->cvWrite);
-            Cond_Broadcast(&scb->extraProps.peerProps->transmitter->cvRead);
-            Cond_Broadcast(&scb->extraProps.peerProps->transmitter->cvWrite);
-
 //            ShutDown(scb->fid,SHUTDOWN_BOTH);
             break;
     }
+//    free(scb);
     return 0;
 }
-
 int socket_read(void *tmpScb, char *buf, unsigned int size) {
-//	MSG("Socket read\n");
     Mutex_Lock(&kernel_mutex);
     SCB *scb = (SCB *) tmpScb;
-    if (scb->socketType != PEER) {
+    if (scb->socketType != PEER || scb->extraProps.peerProps->receiver->readerFCB->refcount == 0) {
         Mutex_Unlock(&kernel_mutex);
-//		MSG("Read from a non-peer socket\n");
         return -1;
     }
     Mutex_Unlock(&kernel_mutex);
     return pipe_read(scb->extraProps.peerProps->receiver, buf, size);
 }
-
 int socket_write(void *tmpScb, const char *buf, unsigned int size) {
-//	MSG("Socket write\n");
     Mutex_Lock(&kernel_mutex);
     SCB *scb = (SCB *) tmpScb;
-    if (scb->socketType != PEER) {
-//		MSG("Write from a non-peer socket\n");
+    if (scb->socketType != PEER || scb->extraProps.peerProps->transmitter->writerFCB->refcount == 0) {
         Mutex_Unlock(&kernel_mutex);
         return -1;
     }
     Mutex_Unlock(&kernel_mutex);
     return pipe_write(scb->extraProps.peerProps->transmitter, buf, size);
 }
-
 file_ops socketFuncs = {
         .Open = NULL,
         .Read = socket_read,
         .Write = socket_write,
         .Close = socket_close
 };
-
 Fid_t Socket(port_t port) {
     if (port < 0 || port > MAX_PORT)return NOFILE;
     Fid_t fid;
@@ -135,7 +112,6 @@ Fid_t Socket(port_t port) {
     Mutex_Unlock(&kernel_mutex);
     return fid;
 }
-
 int Listen(Fid_t sock) {
     Mutex_Lock(&kernel_mutex);
     SCB *scb = get_scb(sock);
@@ -151,7 +127,6 @@ int Listen(Fid_t sock) {
     Mutex_Unlock(&kernel_mutex);
     return 0;
 }
-
 Fid_t Accept(Fid_t lsock) {
     Mutex_Lock(&kernel_mutex);
     SCB *listenerSCB = get_scb(lsock);
@@ -197,7 +172,6 @@ Fid_t Accept(Fid_t lsock) {
     fcb[0] = get_fcb(peer1fid);
     fcb[1] = request->fcb;
     PipeCB *pipeCB2 = PipeNoReserving(&pipe2, fid, fcb);
-
     peer1->extraProps.peerProps->transmitter = pipeCB1;
     peer1->extraProps.peerProps->receiver = pipeCB2;
     peer2->extraProps.peerProps->transmitter = pipeCB2;
@@ -207,17 +181,13 @@ Fid_t Accept(Fid_t lsock) {
     request->isServed = 1;
     Mutex_Unlock(&kernel_mutex);
     Cond_Signal(&request->cv);
-//	MSG("Request served\n");
     return peer1fid;
 }
-
 int Connect(Fid_t sock, port_t port, timeout_t timeout) {
-//	MSG("Connecting starts\n");
     Mutex_Lock(&kernel_mutex);
     SCB *scb = get_scb(sock);
     if (port < 0 || port >= MAX_PORT || Portmap[port] == NULL || Portmap[port]->socketType != LISTENER ||
         scb->socketType != UNBOUND) {
-//		MSG("Connect fails \n");
         Mutex_Unlock(&kernel_mutex);
         return -1;
     }
@@ -227,29 +197,26 @@ int Connect(Fid_t sock, port_t port, timeout_t timeout) {
     request->fid = sock;
     request->fcb = get_fcb(sock);
     request->scb = get_scb(sock);
-
     rlnode node;
     rlnode_init(&node, request);
     rlist_push_back(&Portmap[port]->extraProps.listenerProps->requests, &node);
     Cond_Signal(&Portmap[port]->extraProps.listenerProps->cv);
-//	MSG("Sending request\n");
-//	MSG("Connect before condwait\n");
     Cond_Wait(&kernel_mutex, &request->cv);
-//    MSG("Connect sockType=%d\n",scb->socketType);
-//	MSG("returned\n");
     Mutex_Unlock(&kernel_mutex);
     return request->isServed - 1;
 }
-
 int ShutDown(Fid_t sock, shutdown_mode how) {
-//    MSG("Shutdown sock%d mode=%d\n", sock, how);
     SCB *scb = get_scb(sock);
     switch (how) {
         case SHUTDOWN_READ:
+            scb->extraProps.peerProps->receiver->readerFCB->refcount = 0;
             return pipe_closeReader(scb->extraProps.peerProps->receiver);
         case SHUTDOWN_WRITE:
+            scb->extraProps.peerProps->transmitter->writerFCB->refcount = 0;
             return pipe_closeWriter(scb->extraProps.peerProps->transmitter);
         case SHUTDOWN_BOTH:
+            scb->extraProps.peerProps->receiver->readerFCB->refcount = 0;
+            scb->extraProps.peerProps->transmitter->writerFCB->refcount = 0;
             return pipe_closeReader(scb->extraProps.peerProps->receiver) +
                    pipe_closeWriter(scb->extraProps.peerProps->transmitter) < 0 ? -1 : 0;
     }

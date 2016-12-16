@@ -91,8 +91,8 @@ void Mutex_Unlock(Mutex *);
   @see COND_INIT
  */
 typedef struct {
-	void *waitset;        /**< The set of waiting threads */
-	Mutex waitset_lock;   /**< A mutex to protect `waitset` */
+    void *waitset;        /**< The set of waiting threads */
+    Mutex waitset_lock;   /**< A mutex to protect `waitset` */
 } CondVar;
 /** @brief  This macro is used to initialize condition variables.
 
@@ -435,8 +435,8 @@ int Dup2(Fid_t oldfd, Fid_t newfd);
   available at the read end, using @c Read().
 */
 typedef struct pipe_s {
-	Fid_t read;     /**< The read end of the pipe */
-	Fid_t write;    /**< The write end of the pipe */
+    Fid_t read;     /**< The read end of the pipe */
+    Fid_t write;    /**< The write end of the pipe */
 } pipe_t;
 /*******************************************
  *
@@ -446,15 +446,14 @@ typedef struct pipe_s {
 typedef struct file_control_block FCB;        /**< @brief Forward declaration */
 //typedef struct pipe_control_block PipeCB;        /**< @brief Forward declaration */
 #define BUFFER_SIZE (8*1024)
-
 typedef struct pipe_control_block {
-	pipe_t *pipe;
-	FCB *readerFCB, *writerFCB;
-	CondVar cvRead;
-	CondVar cvWrite;
-	char buffer[BUFFER_SIZE];
-	int readPos;
-	int writePos;
+    pipe_t *pipe;
+    FCB *readerFCB, *writerFCB;
+    CondVar cvRead;
+    CondVar cvWrite;
+    char buffer[BUFFER_SIZE];
+    int readPos;
+    int writePos;
 } PipeCB;
 PipeCB *PipeNoReserving(pipe_t *pipe, Fid_t *fid, FCB **fcb);
 /**
@@ -516,9 +515,9 @@ typedef int16_t port_t;
 #define NOPORT ((port_t)0)
 /*Our edits*/
 typedef enum SocketTypeEnum {
-	UNBOUND,
-	LISTENER,
-	PEER
+    UNBOUND,
+    LISTENER,
+    PEER
 } SocketType;
 /**
   @brief Return a new socket bound on a port.
@@ -621,9 +620,9 @@ int Connect(Fid_t sock, port_t port, timeout_t timeout);
    @see ShutDown
 */
 typedef enum {
-	SHUTDOWN_READ = 1,  /**< Shut down the read direction. */
-	SHUTDOWN_WRITE = 2, /**< Shut down the write direction. */
-	SHUTDOWN_BOTH = 3   /**< Shut down both directions. */
+    SHUTDOWN_READ = 1,  /**< Shut down the read direction. */
+    SHUTDOWN_WRITE = 2, /**< Shut down the write direction. */
+    SHUTDOWN_BOTH = 3   /**< Shut down both directions. */
 } shutdown_mode;
 /**
    @brief Shut down one direction of socket communication.
@@ -670,19 +669,19 @@ int ShutDown(Fid_t sock, shutdown_mode how);
   @see OpenInfo
   */
 typedef struct procinfo {
-	Pid_t pid;      /**< @brief The pid of the process. */
-	Pid_t ppid;     /**< @brief The parent pid of the process.
+    Pid_t pid;      /**< @brief The pid of the process. */
+    Pid_t ppid;     /**< @brief The parent pid of the process.
 
                 This is equal to NOPROC for parentless procs. */
-	int alive;      /**< @brief Non-zero if process is alive, zero if process is zombie. */
-	unsigned long thread_count; /**< Current no of threads. */
-	Task main_task;  /**< @brief The main task of the process. */
-	int argl;        /**< @brief Argument length of main task.
+    int alive;      /**< @brief Non-zero if process is alive, zero if process is zombie. */
+    unsigned long thread_count; /**< Current no of threads. */
+    Task main_task;  /**< @brief The main task of the process. */
+    int argl;        /**< @brief Argument length of main task.
 
             Note that this is the
             real argument length, not just the length of the @c args field, which is
             limited at @c PROCINFO_MAX_ARGS_SIZE. */
-	char args[PROCINFO_MAX_ARGS_SIZE]; /**< @brief The first
+    char args[PROCINFO_MAX_ARGS_SIZE]; /**< @brief The first
     @c PROCINFO_MAX_ARGS_SIZE bytes of the argument of the main task.
 
     If the task's argument is longer (as designated by the @c argl field), the
