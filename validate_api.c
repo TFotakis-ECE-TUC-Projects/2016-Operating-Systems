@@ -762,6 +762,7 @@ int data_producer(int argl, void *args) {
 		assert(rc > 0);
 //		MSG("write rc=%d\n",rc);
 		nbytes -= rc;
+//        MSG("nbytes = %d\n",nbytes);
 	}
 	Close(1);
 	return 0;
@@ -780,8 +781,10 @@ int data_consumer(int argl, void *args) {
 		assert(rc >= 0);
 		count += rc;
 //		MSG("read rc=%d\n",rc);
+//        MSG("Count = %d\n",count);
 	}
 	ASSERT(count == nbytes);
+//    MSG("Teliosa\n");
 	return 0;
 }
 BOOT_TEST(test_pipe_single_producer,
@@ -1166,6 +1169,7 @@ BOOT_TEST(test_socket_single_producer,
 	ASSERT(Exec(data_producer, sizeof(N), &N) != NOPROC);
 	Close(0);
 	Close(1);
+//	MSG("Closed\n");
 	WaitChild(NOPROC, NULL);
 	WaitChild(NOPROC, NULL);
 	return 0;

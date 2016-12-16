@@ -33,7 +33,8 @@ void FCB_incref(FCB *fcb) {
 int FCB_decref(FCB *fcb) {
 	assert(fcb);
 	fcb->refcount--;
-	if (fcb->refcount == 0) {
+//    MSG("decref me refcount=%d\n",fcb->refcount);
+    if (fcb->refcount == 0) {
 		int retval = fcb->streamfunc->Close(fcb->streamobj);
 		release_FCB(fcb);
 		return retval;
@@ -144,6 +145,7 @@ int Write(Fid_t fd, const char *buf, unsigned int size) {
 	return retcode;
 }
 int Close(int fd) {
+//	MSG("Closing %d\n",fd);
 	int retcode = (fd >= 0 && fd < MAX_FILEID) ? 0 : -1;  /* Closing a closed fd is legal! */
 	Mutex_Lock(&kernel_mutex);
 	FCB *fcb = get_fcb(fd);

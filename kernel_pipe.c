@@ -1,15 +1,15 @@
 #include "tinyos.h"
 #include "kernel_streams.h"
 #include "kernel_cc.h"
-typedef struct pipe_control_block {
-	pipe_t *pipe;
-	FCB *readerFCB, *writerFCB;
-	CondVar cvRead;
-	CondVar cvWrite;
-	char buffer[BUFFER_SIZE];
-	int readPos;
-	int writePos;
-} PipeCB;
+//typedef struct pipe_control_block {
+//	pipe_t *pipe;
+//	FCB *readerFCB, *writerFCB;
+//	CondVar cvRead;
+//	CondVar cvWrite;
+//	char buffer[BUFFER_SIZE];
+//	int readPos;
+//	int writePos;
+//} PipeCB;
 file_ops readFuncs = {
 		.Open = NULL,
 		.Read = pipe_read,
@@ -60,20 +60,25 @@ int pipe_read(void *pipeCB, char *buf, unsigned int size) {
 	}
 	uint count;
 	for (count = 0; count < size; count++, pipecb->readPos = (pipecb->readPos + 1) % BUFFER_SIZE) {
-		while (pipecb->writePos == pipecb->readPos && pipecb->writerFCB->refcount != 0) {
-			Cond_Broadcast(&pipecb->cvWrite);
-			Cond_Wait(&kernel_mutex, &pipecb->cvRead);
-		}
-		if (pipecb->writePos == pipecb->readPos && pipecb->writerFCB->refcount == 0) {
-			Mutex_Unlock(&kernel_mutex);
-			return count;
-		}
-		buf[count] = pipecb->buffer[pipecb->readPos];
-		Cond_Broadcast(&pipecb->cvWrite);
-	}
-	Mutex_Unlock(&kernel_mutex);
-	Cond_Broadcast(&pipecb->cvWrite);
-	return count;
+//        MSG("Writer refcount = %d\n",pipecb->writerFCB->refcount);
+        while (pipecb->writePos == pipecb->readPos && pipecb->writerFCB->refcount != 0) {
+            Cond_Broadcast(&pipecb->cvWrite);
+//            MSG("Koimizo reader me readPos=%d kai writePos=%d kai refcount=%d\n",pipecb->readPos,pipecb->writePos,pipecb->writerFCB->refcount);
+            Cond_Wait(&kernel_mutex, &pipecb->cvRead);
+//            MSG("3ipnios reader me readPos=%d kai writePos=%d\n",pipecb->readPos,pipecb->writePos);
+        }
+        if (pipecb->writePos == pipecb->readPos && pipecb->writerFCB->refcount == 0) {
+//            MSG("Epistrefo me kleisto writer\n");
+            Mutex_Unlock(&kernel_mutex);
+            return count;
+        }
+        buf[count] = pipecb->buffer[pipecb->readPos];
+        Cond_Broadcast(&pipecb->cvWrite);
+    }
+    Mutex_Unlock(&kernel_mutex);
+    Cond_Broadcast(&pipecb->cvWrite);
+//    MSG("Count mesa ston reader = %d\n",count);
+    return count;
 }
 int pipe_write(void *pipeCB, const char *buf, unsigned int size) {
 	PipeCB *pipecb = (PipeCB *) pipeCB;
@@ -93,15 +98,18 @@ int pipe_write(void *pipeCB, const char *buf, unsigned int size) {
 	}
 	Mutex_Unlock(&kernel_mutex);
 	Cond_Broadcast(&pipecb->cvRead);
+//    MSG("3ipnao ton reader me readPos=%d kai writePos=%d\n",pipecb->readPos,pipecb->writePos);
 	return count;
 }
 int pipe_closeReader(void *pipeCB) {
+//    MSG("close reader\n");
 	PipeCB *pipecb = (PipeCB *) pipeCB;
 	if (pipecb->writerFCB->refcount == 0)free(pipeCB);
 	Cond_Broadcast(&pipecb->cvWrite);
 	return 0;
 }
 int pipe_closeWriter(void *pipeCB) {
+//    MSG("close writer\n");
 	PipeCB *pipecb = (PipeCB *) pipeCB;
 	if (pipecb->readerFCB->refcount == 0)free(pipeCB);
 	Cond_Broadcast(&pipecb->cvRead);
