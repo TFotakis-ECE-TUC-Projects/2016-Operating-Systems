@@ -1,14 +1,10 @@
 
-#include <assert.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <time.h>
 #include <math.h>
-#include <setjmp.h>
 #include "util.h"
 #include "symposium.h"
 #include "tinyoslib.h"
-#include "unit_testing.h"
 
 
 /*
@@ -59,10 +55,6 @@ BARE_TEST(test_boot,
     ASSERT(cpu_rec.ncores == 1);
     ASSERT(cpu_rec.core == 0);
 }
-
-
-
-
 /*********************************************
  *
  *
@@ -72,17 +64,10 @@ BARE_TEST(test_boot,
  *
  *
  *********************************************/
-
-
-
-
-
 /*
 	Test that the child process created, gets the same pid as the
 	parent got returned from exec.
  */
-
-
 BOOT_TEST(test_pid_of_init_is_one,
           "Test that the pid of the init task is 1. This may\n"
                   "not be according to spec, but this is something\n"
@@ -648,7 +633,7 @@ BOOT_TEST(test_create_join_thread,
 }
 BOOT_TEST(test_exit_many_threads, "Test that a process thread calling Exit will clean up correctly.") {
     int task(int argl, void *args) {
-        fibo(35);//Sadly for value 45 we have timeout failure caused from the excess time of the fibo(45) calculation
+        fibo(35);
         return 2;
     }
     int mthread(int argl, void *args) {
@@ -669,13 +654,6 @@ TEST_SUITE(thread_tests,
                 &test_exit_many_threads,
                 NULL
         };
-
-
-
-
-
-
-
 /*********************************************
  *
  *
@@ -685,9 +663,6 @@ TEST_SUITE(thread_tests,
  *
  *
  *********************************************/
-
-
-
 BOOT_TEST(test_pipe_open,
           "Open a pipe and put just a little data in it"
 ) {
@@ -760,9 +735,7 @@ int data_producer(int argl, void *args) {
         unsigned int n = (nbytes < 32768) ? nbytes : 32768;
         int rc = Write(1, buffer, n);
         assert(rc > 0);
-//		MSG("write rc=%d\n",rc);
         nbytes -= rc;
-//        MSG("nbytes = %d\n",nbytes);
     }
     Close(1);
     return 0;
@@ -780,11 +753,8 @@ int data_consumer(int argl, void *args) {
         rc = Read(0, buffer, 16384);
         assert(rc >= 0);
         count += rc;
-//		MSG("read rc=%d\n",rc);
-//        MSG("Count = %d\n",count);
     }
     ASSERT(count == nbytes);
-//    MSG("Teliosa\n");
     return 0;
 }
 BOOT_TEST(test_pipe_single_producer,
@@ -1231,8 +1201,7 @@ BOOT_TEST(test_shudown_read,
     char buffer[12];
     int ret;
     ASSERT((ret = Read(cli, buffer, 12)) == -1);
-    MSG("ret = %d\n", ret);
-    ASSERT(Write(srv, "Hello world", 12) == -1);
+    ASSERT(ret = Write(srv, "Hello world", 12) == -1);
     for (uint i = 0; i < 2000; i++) {
         ASSERT(Write(srv, "Hello world", 12) == -1);
         check_transfer(cli, srv);
@@ -1271,7 +1240,8 @@ BOOT_TEST(test_shudown_write,
         ASSERT(strcmp(buffer, "Hello world") == 0);
     }
     for (uint i = 0; i < 2000; i++) {
-        ASSERT(Read(cli, buffer, 12) == 0);
+        int rc;
+        ASSERT(rc = Read(cli, buffer, 12) == 0);
         check_transfer(cli, srv);
     }
     return 0;
@@ -1303,10 +1273,7 @@ TEST_SUITE(socket_tests,
                 &test_socket_single_producer,
                 &test_socket_multi_producer,
                 &test_shudown_read,
-//		        -----------------------------------------------------------------------------------------------------------------------------------------
                 &test_shudown_write,
-//				--------------------------------------------------------------PROSOXIIIIIIIIIII PROSORINO KLEISIMO ------------------
-//                ---------------------------------------------------------------------------------------------------------------------------------------
                 &test_connect_fails_on_timeout,
                 NULL
         };
@@ -1544,8 +1511,6 @@ TEST_SUITE(all_tests,
            "A suite containing all tests.")
         {
                 &basic_tests,
-                //&concurrency_tests,
-                //&io_tests,
                 &thread_tests,
                 &pipe_tests,
                 &socket_tests,

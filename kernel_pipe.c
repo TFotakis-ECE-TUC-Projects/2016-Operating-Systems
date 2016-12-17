@@ -60,7 +60,6 @@ int pipe_read(void *pipeCB, char *buf, unsigned int size) {
             return count;
         }
         buf[count] = pipecb->buffer[pipecb->readPos];
-        Cond_Broadcast(&pipecb->cvWrite);
     }
     Mutex_Unlock(&kernel_mutex);
     Cond_Broadcast(&pipecb->cvWrite);
@@ -80,7 +79,6 @@ int pipe_write(void *pipeCB, const char *buf, unsigned int size) {
             return -1;
         }
         pipecb->buffer[pipecb->writePos] = buf[count];
-        Cond_Broadcast(&pipecb->cvRead);
     }
     Mutex_Unlock(&kernel_mutex);
     Cond_Broadcast(&pipecb->cvRead);
@@ -88,14 +86,18 @@ int pipe_write(void *pipeCB, const char *buf, unsigned int size) {
 }
 int pipe_closeReader(void *pipeCB) {
     PipeCB *pipecb = (PipeCB *) pipeCB;
-    if (pipecb->writerFCB->refcount == 0)free(pipeCB);
-    Cond_Broadcast(&pipecb->cvWrite);
+    if (pipecb->writerFCB->refcount == 0) {
+        Cond_Broadcast(&pipecb->cvWrite);
+        free(pipecb);
+    }
     return 0;
 }
 int pipe_closeWriter(void *pipeCB) {
     PipeCB *pipecb = (PipeCB *) pipeCB;
-    if (pipecb->readerFCB->refcount == 0)free(pipeCB);
-    Cond_Broadcast(&pipecb->cvRead);
+    if (pipecb->readerFCB->refcount == 0) {
+        Cond_Broadcast(&pipecb->cvRead);
+        free(pipecb);
+    }
     return 0;
 }
 int dummyRead(void *pipeCB, char *buf, unsigned int size) {
