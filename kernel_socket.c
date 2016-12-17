@@ -23,7 +23,7 @@ typedef struct socket_control_block {
     FCB *fcb;
     SocketType socketType;
     port_t boundPort;
-    int refcount;
+//    int refcount;
     union {
         ListenerProps *listenerProps;
         PeerProps *peerProps;
@@ -43,33 +43,37 @@ SCB *get_scb(Fid_t sock) {
 }
 SCB *Portmap[MAX_PORT + 1] = {NULL};
 int socket_close(void *tmpSCB) {
-    SCB *scb = (SCB *) tmpSCB;
-    if (scb == NULL) {
-        Mutex_Unlock(&kernel_mutex);
-        return -1;
-    }
-    assert(scb != NULL);
-    switch (scb->socketType) {
-        case UNBOUND:
-            break;
-        case LISTENER:
-            Portmap[scb->boundPort] = NULL;
-            while (!is_rlist_empty(&scb->extraProps.listenerProps->requests)) {
-                rlnode *reqNode = rlist_pop_front(&scb->extraProps.listenerProps->requests);
-                Cond_Signal(&reqNode->request->cv);
-            }
-            break;
-        case PEER:
+//    SCB *scb = (SCB *) tmpSCB;
+//    if (scb == NULL) {
+//        Mutex_Unlock(&kernel_mutex);
+//        return -1;
+//    }
+//    assert(scb != NULL);
+//    switch (scb->socketType) {
+//        case UNBOUND:
+//            break;
+//        case LISTENER:
+//            Portmap[scb->boundPort] = NULL;
+//            while (!is_rlist_empty(&scb->extraProps.listenerProps->requests)) {
+//                rlnode *reqNode = rlist_pop_front(&scb->extraProps.listenerProps->requests);
+//                Cond_Signal(&reqNode->request->cv);
+//            }
+//            break;
+//        case PEER:
 //            ShutDown(scb->fid,SHUTDOWN_BOTH);
-            break;
-    }
+//            break;
+//    }
 //    free(scb);
     return 0;
 }
 int socket_read(void *tmpScb, char *buf, unsigned int size) {
     Mutex_Lock(&kernel_mutex);
     SCB *scb = (SCB *) tmpScb;
-    if (scb->socketType != PEER || scb->extraProps.peerProps->receiver->readerFCB->refcount == 0) {
+//    MSG("refcount inside receiver read %d\n",scb->extraProps.peerProps->receiver->readerFCB->refcount );
+//    MSG("refcount inside receiver write %d\n",scb->extraProps.peerProps->receiver->writerFCB->refcount );
+//    MSG("refcount inside transmitter read %d\n",scb->extraProps.peerProps->transmitter->readerFCB->refcount );
+//    MSG("refcount inside transmitter write %d\n",scb->extraProps.peerProps->transmitter->writerFCB->refcount );
+    if (scb->socketType != PEER /*|| scb->extraProps.peerProps->receiver->readerFCB->refcount == 0*/) {
         Mutex_Unlock(&kernel_mutex);
         return -1;
     }
@@ -79,7 +83,7 @@ int socket_read(void *tmpScb, char *buf, unsigned int size) {
 int socket_write(void *tmpScb, const char *buf, unsigned int size) {
     Mutex_Lock(&kernel_mutex);
     SCB *scb = (SCB *) tmpScb;
-    if (scb->socketType != PEER || scb->extraProps.peerProps->transmitter->writerFCB->refcount == 0) {
+    if (scb->socketType != PEER /*|| scb->extraProps.peerProps->transmitter->writerFCB->refcount == 0*/) {
         Mutex_Unlock(&kernel_mutex);
         return -1;
     }
@@ -106,7 +110,7 @@ Fid_t Socket(port_t port) {
     scb->fcb = fcb;
     scb->socketType = UNBOUND;
     scb->boundPort = port;
-    scb->refcount = 0;
+//    scb->refcount = 0;
     fcb->streamobj = scb;
     fcb->streamfunc = &socketFuncs;
     Mutex_Unlock(&kernel_mutex);
@@ -206,19 +210,22 @@ int Connect(Fid_t sock, port_t port, timeout_t timeout) {
     return request->isServed - 1;
 }
 int ShutDown(Fid_t sock, shutdown_mode how) {
-    SCB *scb = get_scb(sock);
-    switch (how) {
-        case SHUTDOWN_READ:
-            scb->extraProps.peerProps->receiver->readerFCB->refcount = 0;
-            return pipe_closeReader(scb->extraProps.peerProps->receiver);
-        case SHUTDOWN_WRITE:
-            scb->extraProps.peerProps->transmitter->writerFCB->refcount = 0;
-            return pipe_closeWriter(scb->extraProps.peerProps->transmitter);
-        case SHUTDOWN_BOTH:
-            scb->extraProps.peerProps->receiver->readerFCB->refcount = 0;
-            scb->extraProps.peerProps->transmitter->writerFCB->refcount = 0;
-            return pipe_closeReader(scb->extraProps.peerProps->receiver) +
-                   pipe_closeWriter(scb->extraProps.peerProps->transmitter) < 0 ? -1 : 0;
-    }
+//    SCB *scb = get_scb(sock);
+//    if (scb == NULL)return -1;
+//    switch (how) {
+//        case SHUTDOWN_READ:
+//            scb->extraProps.peerProps->receiver->readerFCB->refcount = 0;
+//            MSG("Shutdown read\n");
+//            return pipe_closeReader(scb->extraProps.peerProps->receiver);
+//        case SHUTDOWN_WRITE:
+//            MSG("Shutdown write\n");
+//            scb->extraProps.peerProps->transmitter->writerFCB->refcount = 0;
+//            return pipe_closeWriter(scb->extraProps.peerProps->transmitter);
+//        case SHUTDOWN_BOTH:
+//            scb->extraProps.peerProps->receiver->readerFCB->refcount = 0;
+//            scb->extraProps.peerProps->transmitter->writerFCB->refcount = 0;
+//            return pipe_closeReader(scb->extraProps.peerProps->receiver) +
+//                   pipe_closeWriter(scb->extraProps.peerProps->transmitter) < 0 ? -1 : 0;
+//    }
     return -1;
 }
