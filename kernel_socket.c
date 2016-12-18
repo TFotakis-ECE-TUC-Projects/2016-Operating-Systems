@@ -15,7 +15,6 @@ typedef struct listener_extra_properties {
 } ListenerProps;
 typedef struct peer_extra_properties {
     PipeCB *receiver, *transmitter;
-    int isReaderClosed, isWriterClosed;
     SCB *otherPeer;
 } PeerProps;
 typedef struct socket_control_block {
@@ -42,7 +41,6 @@ int socket_close(void *tmpSCB) {
     assert(scb != NULL);
     switch (scb->socketType) {
         case UNBOUND:
-            free(scb);
             break;
         case LISTENER:
             Portmap[scb->boundPort] = NULL;
@@ -51,59 +49,36 @@ int socket_close(void *tmpSCB) {
                 Cond_Signal(&reqNode->request->cv);
             }
             free(scb->extraProps.listenerProps);
-            free(scb);
             break;
         case PEER:
-            if (scb->extraProps.peerProps->receiver->readerFCB->refcount == 0 &&
-                scb->extraProps.peerProps->receiver->writerFCB->refcount == 0 &&
-                scb->extraProps.peerProps->transmitter->readerFCB->refcount == 0 &&
-                scb->extraProps.peerProps->transmitter->writerFCB->refcount == 0) {
-                free(scb->extraProps.peerProps->receiver);
-                free(scb->extraProps.peerProps->transmitter);
-                free(scb->extraProps.peerProps);
-                free(scb);
+            if (scb->extraProps.peerProps->otherPeer) {
+                pipe_closeReader(scb->extraProps.peerProps->receiver);
+                pipe_closeWriter(scb->extraProps.peerProps->transmitter);
+                scb->extraProps.peerProps->otherPeer->extraProps.peerProps->otherPeer = NULL;
             }
+            free(scb->extraProps.peerProps);
             break;
     }
+    free(NULL);
+    free(scb);
     return 0;
 }
 int socket_read(void *tmpScb, char *buf, unsigned int size) {
     Mutex_Lock(&kernel_mutex);
     SCB *scb = (SCB *) tmpScb;
     int isPeer = scb->socketType == PEER;
-    int isReaderClosed = scb->extraProps.peerProps->isReaderClosed;
-    int otherPeerOpened = scb->extraProps.peerProps->otherPeer != NULL;
-    int isOtherWriterClosed = otherPeerOpened ?
-                              scb->extraProps.peerProps->otherPeer->extraProps.peerProps->isWriterClosed : 0;
     PipeCB *pipeCB = scb->extraProps.peerProps->receiver;
     Mutex_Unlock(&kernel_mutex);
-    int retVal = 0;
-    if (!isPeer || isReaderClosed) {
-        return -1;
-    }
-    if (isOtherWriterClosed) {
-        uint oldRefCount = pipeCB->writerFCB->refcount;
-        pipeCB->writerFCB->refcount = 0;
-        retVal = pipe_read(pipeCB, buf, size);
-        pipeCB->writerFCB->refcount = oldRefCount;
-    } else {
-        retVal = pipe_read(pipeCB, buf, size);
-    }
-    return retVal;
+    if (isPeer)return pipe_read(pipeCB, buf, size);
+    return -1;
 }
 int socket_write(void *tmpScb, const char *buf, unsigned int size) {
     Mutex_Lock(&kernel_mutex);
     SCB *scb = (SCB *) tmpScb;
     int isPeer = scb->socketType == PEER;
-    int otherPeerOpened = scb->extraProps.peerProps->otherPeer != NULL;
-    int isWriterClosed = scb->extraProps.peerProps->isWriterClosed;
-    int isOtherReaderClosed = otherPeerOpened ?
-                              scb->extraProps.peerProps->otherPeer->extraProps.peerProps->isReaderClosed : 0;
     PipeCB *pipeCB = scb->extraProps.peerProps->transmitter;
     Mutex_Unlock(&kernel_mutex);
-    if (isPeer && !isWriterClosed && otherPeerOpened && !isOtherReaderClosed) {
-        return pipe_write(pipeCB, buf, size);
-    }
+    if (isPeer)return pipe_write(pipeCB, buf, size);
     return -1;
 }
 file_ops socketFuncs = {
@@ -190,14 +165,10 @@ Fid_t Accept(Fid_t lsock) {
     PipeCB *pipeCB2 = PipeNoReserving(&pipe2, fid, fcb);
     peer1->extraProps.peerProps->transmitter = pipeCB1;
     peer1->extraProps.peerProps->receiver = pipeCB2;
-    peer1->extraProps.peerProps->isReaderClosed = 0;
-    peer1->extraProps.peerProps->isWriterClosed = 0;
     peer1->extraProps.peerProps->otherPeer = peer2;
     peer1->socketType = PEER;
     peer2->extraProps.peerProps->transmitter = pipeCB2;
     peer2->extraProps.peerProps->receiver = pipeCB1;
-    peer2->extraProps.peerProps->isReaderClosed = 0;
-    peer2->extraProps.peerProps->isWriterClosed = 0;
     peer2->extraProps.peerProps->otherPeer = peer1;
     peer2->socketType = PEER;
     request->isServed = 1;
@@ -233,18 +204,13 @@ int ShutDown(Fid_t sock, shutdown_mode how) {
     int retVal = -1;
     switch (how) {
         case SHUTDOWN_READ:
-            scb->extraProps.peerProps->isReaderClosed = 1;
             retVal = pipe_closeReader(scb->extraProps.peerProps->receiver);
             break;
         case SHUTDOWN_WRITE:
-            scb->extraProps.peerProps->isWriterClosed = 1;
             retVal = pipe_closeWriter(scb->extraProps.peerProps->transmitter);
             break;
         case SHUTDOWN_BOTH:
-            scb->extraProps.peerProps->isReaderClosed = 1;
-            scb->extraProps.peerProps->isWriterClosed = 1;
-            retVal = pipe_closeReader(scb->extraProps.peerProps->receiver) +
-                     pipe_closeWriter(scb->extraProps.peerProps->transmitter) < 0 ? -1 : 0;
+            retVal = socket_close(scb);
             break;
     }
     Mutex_Unlock(&kernel_mutex);

@@ -449,6 +449,7 @@ typedef struct file_control_block FCB;        /**< @brief Forward declaration */
 typedef struct pipe_control_block {
     pipe_t *pipe;
     FCB *readerFCB, *writerFCB;
+    int isReaderClosed, isWriterClosed;
     CondVar cvRead;
     CondVar cvWrite;
     char buffer[BUFFER_SIZE];
