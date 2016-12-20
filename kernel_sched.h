@@ -59,6 +59,14 @@ typedef enum {
 	IO,
 	DEADLOCKED
 } Yield_state;
+uint jiff;
+rlnode timeoutList;
+typedef struct timeout_control_block {
+    Tid_t tid;
+    uint birthday;
+    timeout_t timeout;
+    CondVar *cv;
+} TimeoutCB;
 /**
   @brief The thread control block
 
@@ -188,6 +196,7 @@ void yield();
   node of each list in the @c priority_table if its quantums_passed value exceeds the
   @c MAX_QUANTUMS_PASSED constant.
 */
+void checkTimeout(void);
 void thread_list_priority_calculation(void);
 /**
   @brief It calculates the priority of the current thread after its execution.

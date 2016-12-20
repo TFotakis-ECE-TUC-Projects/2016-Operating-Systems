@@ -296,7 +296,7 @@ void con_proc(proxy_daemon *this, const char *pattern) {
 		/* Mismatch ? */
 		int matched = (memcmp(pat, coninput, rc) == 0);
 		if (!matched) {
-			break_mismatch:
+//			break_mismatch:
 					__attribute__((unused));
 			break;
 		}
@@ -305,7 +305,7 @@ void con_proc(proxy_daemon *this, const char *pattern) {
 		pat += rc;
 		plen -= rc;
 	}
-	checking_time:
+//	checking_time:
 			__attribute__((unused));
 	ASSERT_MSG(plen == 0, "Mismatched expect(\"%.20s%s\") at pos %d\n",
 	           pattern,

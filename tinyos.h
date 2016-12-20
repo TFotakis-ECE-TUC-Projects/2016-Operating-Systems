@@ -130,6 +130,7 @@ int Cond_Wait(Mutex *mx, CondVar *cv);
  * @brief Used to flag a thread as IO Bounded.
  * */
 int Cond_Wait_from_IO(Mutex *mx, CondVar *cv);
+
 /** @brief Signal a condition variable.
 
    This call wakes up exactly one thread sleeping on this condition
@@ -444,7 +445,6 @@ typedef struct pipe_s {
  *
  *******************************************/
 typedef struct file_control_block FCB;        /**< @brief Forward declaration */
-//typedef struct pipe_control_block PipeCB;        /**< @brief Forward declaration */
 #define BUFFER_SIZE (8*1024)
 typedef struct pipe_control_block {
     pipe_t *pipe;
@@ -476,18 +476,6 @@ PipeCB *PipeNoReserving(pipe_t *pipe, Fid_t *fid, FCB **fcb);
     - the available file ids for the process are exhausted.
 */
 int Pipe(pipe_t *pipe);
-/*Our edits*/
-//#define BUFFER_SIZE (16*1024)
-/*
-typedef struct pipe_control_block{
-	pipe_t *pipe;
-	CondVar cvRead;
-	CondVar cvWrite;
-	char buffer[BUFFER_SIZE];
-	int readPos;
-	int writePos;
-}PipeCB;
-*/
 int pipe_read(void *pipeCB, char *buf, unsigned int size);
 int pipe_write(void *pipeCB, const char *buf, unsigned int size);
 int pipe_closeReader(void *pipeCB);
@@ -586,6 +574,7 @@ Fid_t Accept(Fid_t lsock);
   The unit is milliseconds.
 */
 typedef long int timeout_t;
+int Cond_Wait_with_timeout(Mutex *mutex, CondVar *cv, timeout_t timeout);
 /**
   @brief Create a connection to a listener at a specific port.
 

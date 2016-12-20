@@ -602,7 +602,6 @@ int RemoteClient(size_t argc, const char **argv) {
     FILE *fin = fidopen(sock, "r");
     FILE *fout = fidopen(1, "w");
     while ((c = fgetc(fin)) != EOF) {
-//        fibo(20);//----------------------------RACE-------------------------CONDITION-----------------------------
         fputc(c, fout);
     }
     fclose(fin);

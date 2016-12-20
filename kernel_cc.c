@@ -99,6 +99,19 @@ int Cond_Wait_from_IO(Mutex *mutex, CondVar *cv) {
     CURTHREAD->yield_state = IO;
     return Cond_Wait(mutex, cv);
 }
+int Cond_Wait_with_timeout(Mutex *mutex, CondVar *cv, timeout_t timeout) {
+    TimeoutCB *timeoutCB = (TimeoutCB *) xmalloc(sizeof(TimeoutCB));
+    timeoutCB->tid = (Tid_t) CURTHREAD;
+    timeoutCB->birthday = jiff;
+    timeoutCB->timeout = timeout * 1000;
+    timeoutCB->cv = cv;
+    rlnode timeoutNode;
+    rlnode_init(&timeoutNode, timeoutCB);
+    rlist_push_back(&timeoutList, &timeoutNode);
+    int retVal = Cond_Wait(mutex, cv);
+    rlist_remove(&timeoutNode);
+    return retVal;
+}
 /**
   @internal
   Helper for Cond_Signal and Cond_Broadcast

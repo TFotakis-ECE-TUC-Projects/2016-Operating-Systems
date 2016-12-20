@@ -1,3 +1,4 @@
+#include <zconf.h>
 #include "tinyos.h"
 #include "kernel_cc.h"
 #include "kernel_streams.h"
@@ -180,7 +181,7 @@ int Connect(Fid_t sock, port_t port, timeout_t timeout) {
     Mutex_Lock(&kernel_mutex);
     SCB *scb = get_scb(sock);
     if (port < 0 || port >= MAX_PORT || Portmap[port] == NULL || Portmap[port]->socketType != LISTENER ||
-        scb->socketType != UNBOUND) {
+            scb->socketType != UNBOUND) {
         Mutex_Unlock(&kernel_mutex);
         return -1;
     }
@@ -194,7 +195,8 @@ int Connect(Fid_t sock, port_t port, timeout_t timeout) {
     rlnode_init(&node, request);
     rlist_push_back(&Portmap[port]->extraProps.listenerProps->requests, &node);
     Cond_Signal(&Portmap[port]->extraProps.listenerProps->cv);
-    Cond_Wait(&kernel_mutex, &request->cv);
+    Cond_Wait_with_timeout(&kernel_mutex, &request->cv, timeout);
+    rlist_remove(&node);
     Mutex_Unlock(&kernel_mutex);
     return request->isServed - 1;
 }
